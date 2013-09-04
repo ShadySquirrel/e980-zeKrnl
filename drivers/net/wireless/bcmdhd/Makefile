@@ -5,7 +5,7 @@
 #
 #
 
-DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DBCMDRIVER               \
+DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DBCMDRIVER                     \
 	-DBCMDONGLEHOST -DUNRELEASEDCHIP -DBCMDMA32 -DBCMFILEIMAGE            \
 	-DDHDTHREAD -DDHD_DEBUG -DSDTEST -DBDC                                \
 	-DDHD_BCMEVENTS -DSHOW_EVENTS -DPROP_TXSTATUS -DBCMDBG                \
@@ -16,17 +16,18 @@ DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DBCMDRIVER               \
 	-DEMBEDDED_PLATFORM -DENABLE_INSMOD_NO_FW_LOAD -DPNO_SUPPORT          \
 	-DDHD_USE_IDLECOUNT -DSET_RANDOM_MAC_SOFTAP -DROAM_ENABLE -DVSDB      \
 	-DWL_CFG80211_VSDB_PRIORITIZE_SCAN_REQUEST                            \
-	-DESCAN_RESULT_PATCH -DSDIO_CRC_ERROR_FIX \
-	-DDHD_DONOT_FORWARD_BCMEVENT_AS_NETWORK_PKT -DRXFRAME_THREAD	        \
-	-DSUPPORT_PM2_ONLY -DWLTDLS     \
-	-DMIRACAST_AMPDU_SIZE=8		\
-	-Idrivers/net/wireless/bcmdhd	-Idrivers/net/wireless/bcmdhd/include   \
+	-DESCAN_RESULT_PATCH -DSDIO_CRC_ERROR_FIX                             \
+	-DDHD_DONOT_FORWARD_BCMEVENT_AS_NETWORK_PKT -DRXFRAME_THREAD          \
+	-DSUPPORT_PM2_ONLY -DWLTDLS                                           \
+	-DMIRACAST_AMPDU_SIZE=8                                               \
+	-Idrivers/net/wireless/bcmdhd -Idrivers/net/wireless/bcmdhd/include   \
 	-Idrivers/net/wireless/bcmdhd/common/include
 
 DHDOFILES = aiutils.o bcmsdh_sdmmc_linux.o dhd_linux.o siutils.o bcmutils.o   \
-	dhd_linux_sched.o dhd_pno.o dhd_sdio.o bcmwifi_channels.o bcmevent.o hndpmu.o   \
-	bcmsdh.o dhd_cdc.o bcmsdh_linux.o dhd_common.o dhd_wlfc.o dhd_ip.o linux_osl.o \
-	bcmsdh_sdmmc.o dhd_custom_gpio.o sbutils.o wldev_common.o wl_android.o
+	dhd_linux_sched.o dhd_sdio.o bcmwifi_channels.o bcmevent.o hndpmu.o   \
+	bcmsdh.o dhd_cdc.o bcmsdh_linux.o dhd_common.o dhd_wlfc.o dhd_ip.o    \
+	linux_osl.o bcmsdh_sdmmc.o dhd_custom_gpio.o sbutils.o wldev_common.o \
+	wl_android.o dhd_pno.o
 
 obj-$(CONFIG_BCMDHD) += bcmdhd.o
 bcmdhd-objs += $(DHDOFILES)
@@ -38,10 +39,10 @@ ifneq ($(CONFIG_CFG80211),)
 bcmdhd-objs += wl_cfg80211.o wl_cfgp2p.o wl_linux_mon.o dhd_cfg80211.o
 DHDCFLAGS += -DWL_CFG80211 -DWL_CFG80211_STA_EVENT -DWL_ENABLE_P2P_IF
 DHDCFLAGS += -DWL_IFACE_COMB_NUM_CHANNELS
-DHDCFLAGS += -DCUSTOM_ROAM_TRIGGER_SETTING=-75
-DHDCFLAGS += -DCUSTOM_ROAM_DELTA_SETTING=10
+DHDCFLAGS += -DCUSTOM_ROAM_TRIGGER_SETTING=-65
+DHDCFLAGS += -DCUSTOM_ROAM_DELTA_SETTING=15
 DHDCFLAGS += -DCUSTOM_KEEP_ALIVE_SETTING=28000
-DHDCFLAGS += -DCUSTOM_PNO_EVENT_LOCK_xTIME=10
+DHDCFLAGS += -DCUSTOM_PNO_EVENT_LOCK_xTIME=7
 endif
 ifneq ($(CONFIG_DHD_USE_SCHED_SCAN),)
 DHDCFLAGS += -DWL_SCHED_SCAN
@@ -50,10 +51,6 @@ EXTRA_CFLAGS = $(DHDCFLAGS)
 ifeq ($(CONFIG_BCMDHD),m)
 EXTRA_LDFLAGS += --strip-debug
 endif
-
-DHDCFLAGS += -DCUSTOM_TDLS_RSSI_THRESHOLD_HIGH=-60
-DHDCFLAGS += -DCUSTOM_TDLS_RSSI_THRESHOLD_LOW=-70
-DHDCFLAGS += -DCUSTOM_TDLS_IDLE_MODE_SETTING=40000
 
 #########################
 # Chip dependent feature
@@ -70,36 +67,6 @@ DHDCFLAGS += -DCUSTOM_AMPDU_BA_WSIZE=32
 DHDCFLAGS += -DPROP_TXSTATUS_VSDB
 DHDCFLAGS += -DCUSTOM_MAX_TXGLOM_SIZE=32
 DHDCFLAGS += -DREPEAT_READFRAME
-DHDCFLAGS += -DROAM_AP_ENV_DETECTION
 else
- ifneq ($(CONFIG_BCM4334),)
-   DHDCFLAGS += -DBCM4334_CHIP
-   DHDCFLAGS += -DCONFIG_PM_LOCK
-   DHDCFLAGS += -DPROP_TXSTATUS -DPROP_TXSTATUS_VSDB
-   DHDCFLAGS += -DVSDB -DHT40_GO
-   DHDCFLAGS += -DWL_CFG80211_VSDB_PRIORITIZE_SCAN_REQUEST
-   DHDCFLAGS += -DDHD_USE_IDLECOUNT
-   DHDCFLAGS += -DSUPPORT_AMPDU_MPDU_CMD
-   DHDCFLAGS += -DUSE_DYNAMIC_F2_BLKSIZE -DDYNAMIC_F2_BLKSIZE_FOR_NONLEGACY=64
-   DHDCFLAGS += -DCUSTOM_GLOM_SETTING=5 -DENABLE_BCN_LI_BCN_WAKEUP
- #  DHDCFLAGS += -DROAM_AP_ENV_DETECTION
-   DHDCFLAGS += -DCUSTOM_DPC_CPUCORE=0
-   DHDCFLAGS += -DWL_SCHED_SCAN
-  else
-   DHDCFLAGS += -DCUSTOM_SDIO_F2_BLKSIZE=128
-  endif
-endif
-
-ifeq ($(CONFIG_BCMDHD_HOSTWAKEUP_USE_GPIO),y)
-ifeq ($(CONFIG_BCMDHD_HW_OOB),y)
-DHDCFLAGS += -DHW_OOB
-endif
-DHDCFLAGS += -DOOB_INTR_ONLY
-DHDCFLAGS += -DCUSTOM_OOB_GPIO_NUM=$(CONFIG_BCMDHD_GPIO_WL_HOSTWAKEUP)
-endif
-
-ifeq ($(CONFIG_BROADCOM_WIFI_RESERVED_MEM),y)
-  DHDCFLAGS += -DCONFIG_DHD_USE_STATIC_BUF
-  DHDCFLAGS += -DENHANCED_STATIC_BUF
-  DHDCFLAGS += -DSTATIC_WL_PRIV_STRUCT
+DHDCFLAGS += -DCUSTOM_SDIO_F2_BLKSIZE=128
 endif
