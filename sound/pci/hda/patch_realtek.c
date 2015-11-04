@@ -188,6 +188,7 @@ struct alc_spec {
 	unsigned int vol_in_capsrc:1; /* use capsrc volume (ADC has no vol) */
 	unsigned int parse_flags; /* passed to snd_hda_parse_pin_defcfg() */
 	unsigned int shared_mic_hp:1; /* HP/Mic-in sharing */
+	unsigned int no_primary_hp:1; /* Don't prefer HP pins to speaker pins */
 
 	/* auto-mute control */
 	int automute_mode;
@@ -601,6 +602,8 @@ static void alc_line_automute(struct hda_codec *codec)
 {
 	struct alc_spec *spec = codec->spec;
 
+	if (spec->autocfg.line_out_type == AUTO_PIN_SPEAKER_OUT)
+		return;
 	/* check LO jack only when it's different from HP */
 	if (spec->autocfg.line_out_pins[0] == spec->autocfg.hp_pins[0])
 		return;
@@ -2662,8 +2665,10 @@ static const char *alc_get_line_out_pfx(struct alc_spec *spec, int ch,
 			return "PCM";
 		break;
 	}
-	if (snd_BUG_ON(ch >= ARRAY_SIZE(channel_name)))
+	if (ch >= ARRAY_SIZE(channel_name)) {
+		snd_BUG();
 		return "PCM";
+	}
 
 	return channel_name[ch];
 }
@@ -4365,7 +4370,8 @@ static int alc_parse_auto_config(struct hda_codec *codec,
 		return 0; /* can't find valid BIOS pin config */
 	}
 
-	if (cfg->line_out_type == AUTO_PIN_SPEAKER_OUT &&
+	if (!spec->no_primary_hp &&
+	    cfg->line_out_type == AUTO_PIN_SPEAKER_OUT &&
 	    cfg->line_outs <= cfg->hp_outs) {
 		/* use HP as primary out */
 		cfg->speaker_outs = cfg->line_outs;
@@ -5076,6 +5082,7 @@ enum {
 	ALC889_FIXUP_DAC_ROUTE,
 	ALC889_FIXUP_MBP_VREF,
 	ALC889_FIXUP_IMAC91_VREF,
+	ALC882_FIXUP_NO_PRIMARY_HP,
 };
 
 static void alc889_fixup_coef(struct hda_codec *codec,
@@ -5197,6 +5204,17 @@ static void alc889_fixup_imac91_vref(struct hda_codec *codec,
 				    AC_VERB_SET_PIN_WIDGET_CONTROL, val);
 	}
 	spec->keep_vref_in_automute = 1;
+}
+
+/* Don't take HP output as primary
+ * strangely, the speaker output doesn't work on VAIO Z through DAC 0x05
+ */
+static void alc882_fixup_no_primary_hp(struct hda_codec *codec,
+				       const struct alc_fixup *fix, int action)
+{
+	struct alc_spec *spec = codec->spec;
+	if (action == ALC_FIXUP_ACT_PRE_PROBE)
+		spec->no_primary_hp = 1;
 }
 
 static const struct alc_fixup alc882_fixups[] = {
@@ -5381,6 +5399,10 @@ static const struct alc_fixup alc882_fixups[] = {
 		.chained = true,
 		.chain_id = ALC882_FIXUP_GPIO1,
 	},
+	[ALC882_FIXUP_NO_PRIMARY_HP] = {
+		.type = ALC_FIXUP_FUNC,
+		.v.func = alc882_fixup_no_primary_hp,
+	},
 };
 
 static const struct snd_pci_quirk alc882_fixup_tbl[] = {
@@ -5415,6 +5437,7 @@ static const struct snd_pci_quirk alc882_fixup_tbl[] = {
 	SND_PCI_QUIRK(0x1043, 0x1971, "Asus W2JC", ALC882_FIXUP_ASUS_W2JC),
 	SND_PCI_QUIRK(0x1043, 0x835f, "Asus Eee 1601", ALC888_FIXUP_EEE1601),
 	SND_PCI_QUIRK(0x104d, 0x9047, "Sony Vaio TT", ALC889_FIXUP_VAIO_TT),
+	SND_PCI_QUIRK(0x104d, 0x905a, "Sony Vaio Z", ALC882_FIXUP_NO_PRIMARY_HP),
 
 	/* All Apple entries are in codec SSIDs */
 	SND_PCI_QUIRK(0x106b, 0x00a0, "MacBookPro 3,1", ALC889_FIXUP_MBP_VREF),
@@ -5455,6 +5478,7 @@ static const struct alc_model_fixup alc882_fixup_models[] = {
 	{.id = ALC882_FIXUP_ACER_ASPIRE_4930G, .name = "acer-aspire-4930g"},
 	{.id = ALC882_FIXUP_ACER_ASPIRE_8930G, .name = "acer-aspire-8930g"},
 	{.id = ALC883_FIXUP_ACER_EAPD, .name = "acer-aspire"},
+	{.id = ALC882_FIXUP_NO_PRIMARY_HP, .name = "no-primary-hp"},
 	{}
 };
 
@@ -6287,6 +6311,12 @@ static int patch_alc269(struct hda_codec *codec)
 	if (err < 0)
 		goto error;
 
+	alc_pick_fixup(codec, alc269_fixup_models,
+		       alc269_fixup_tbl, alc269_fixups);
+	alc_apply_fixup(codec, ALC_FIXUP_ACT_PRE_PROBE);
+
+	alc_auto_parse_customize_define(codec);
+
 	if (codec->vendor_id == 0x10ec0269) {
 		spec->codec_variant = ALC269_TYPE_ALC269VA;
 		switch (alc_get_coef0(codec) & 0x00f0) {
@@ -6310,12 +6340,6 @@ static int patch_alc269(struct hda_codec *codec)
 		spec->init_hook = alc269_fill_coef;
 		alc269_fill_coef(codec);
 	}
-
-	alc_pick_fixup(codec, alc269_fixup_models,
-		       alc269_fixup_tbl, alc269_fixups);
-	alc_apply_fixup(codec, ALC_FIXUP_ACT_PRE_PROBE);
-
-	alc_auto_parse_customize_define(codec);
 
 	/* automatic parse from the BIOS config */
 	err = alc269_parse_auto_config(codec);
