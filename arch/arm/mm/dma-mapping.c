@@ -864,21 +864,18 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
 	 */
 	unsigned long pfn;
 	size_t left = size;
-	pfn = page_to_pfn(page);
+	
+	//pfn = page_to_pfn(page);
+	pfn = page_to_pfn(page) + offset / PAGE_SIZE;
+	offset %= PAGE_SIZE;
 
 	do {
 		size_t len = left;
 		void *vaddr;
 
 		if (PageHighMem(page)) {
-			if (len + offset > PAGE_SIZE) {
-				if (offset >= PAGE_SIZE) {
-					pfn += offset / PAGE_SIZE;
-					page = pfn_to_page(pfn);
-					offset %= PAGE_SIZE;
-				}
+			if (len + offset > PAGE_SIZE)
 				len = PAGE_SIZE - offset;
-			}
 
 			if (cache_is_vipt_nonaliasing()) {
 				vaddr = kmap_atomic(page);
