@@ -1,6 +1,6 @@
 VERSION=3
 PATCHLEVEL=4
-SUBLEVEL=40
+SUBLEVEL=45
 EXTRAVERSION=-v1.7_lp-experimental
 NAME = Saber-toothed Squirrel
 DEVEL_NAME=zeKrnl
