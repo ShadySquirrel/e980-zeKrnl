@@ -19,7 +19,7 @@
 echo -e "#############################################################################################################"
 echo -e "###### zeKrnl building script"
 echo -e "######"
-echo -e "###### Version 2.1, 30/10/2015 - Ultimate Madness (tm) edition."
+echo -e "###### Version 2.2, 30/10/2015 - Ultimate Madness (tm) edition."
 echo -e "######"
 echo -e "###### Written by ShadySquirrel @ github (https://github.com/ShadySquirrel/) AKA ShadySquirrel @ XDA"
 echo -e "###### Big thanks to my Uni, for my lack of sleep and increased desire to do anything else but study."
@@ -59,8 +59,8 @@ defconfig_name="zeKrnl_e980_defconfig"
 # General rule: n cores => value is n+1. Set it to 1 if you want to watch line by line and hunt for errors
 jobs=2
 
-# Name of example boot.img to use for boot.img regeneration
-template_bootimg="boot-pac-lp.img"
+# initrd template folder
+template_bootimg="initrd"
 
 # Kernel name
 KERNEL_NAME=$(sed -n '/DEVEL_NAME/p' Makefile | head -1 | cut -d'=' -f 2)
@@ -133,13 +133,13 @@ function generate_bootImg {
 	
 	# Check if there is existing, example boot.img to use as template
 	echo -e " "
-	echo -e "+ Checking for templates (boot.img or extracted bootimg.cfg and initrd folder)"
-	if [ -e "$PWD/build_tools/boot_template/bootimg.cfg" ] && [ -d "$PWD/build_tools/boot_template/initrd" ]; then
+	echo -e "+ Checking for template initrd folder in build_tools/boot_template/$template_bootimg..."
+	if [ -e "$PWD/build_tools/boot_template/bootimg.cfg" ] && [ -d "$PWD/build_tools/boot_template/$template_bootimg" ]; then
 		echo -e "++ Template bootimg.cfg and initrd found, using them"
 		echo " "
 		cp -rvf "$PWD/build_tools/boot_template/bootimg.cfg" "$PWD/build_tools/tmp/boot"
-		cp -rvf "$PWD/build_tools/boot_template/initrd" "$PWD/build_tools/tmp/boot"
-		mv "$PWD/build_tools/tmp/boot/initrd" "$PWD/build_tools/tmp/boot/initrd-tmp"
+		cp -rvf "$PWD/build_tools/boot_template/$template_bootimg" "$PWD/build_tools/tmp/boot"
+		mv "$PWD/build_tools/tmp/boot/$template_bootimg" "$PWD/build_tools/tmp/boot/initrd-tmp"
 		
 		# Generate new initrd.img based on given folder...
 		echo -e " "
@@ -160,24 +160,9 @@ function generate_bootImg {
 		# return back to working dir...
 		cd "$curPWD"
 		echo "+++ Back in $PWD"	
-		
-		
-	elif [ -e "$PWD/build_tools/template_img/$template_bootimg" ]; then
-	
-		echo -e "++ Template boot.img found, extracting"
-		
-		abootimg -x "build_tools/template_img/$template_bootimg"
-		
-		# Move bootimg.cfg & initrd.img
-		mv bootimg.cfg "$PWD/build_tools/tmp/boot/"
-		mv initrd.img "$PWD/build_tools/tmp/boot/"
-		# Discard & delete old zImage
-		rm -rv zImage
-		
-		echo -e " "
-		echo -e "++ Template extracted"
+
 	else
-		echo -e "++ Templates not found! Cannot create boot.img without templates. Aborting."
+		echo -e "++ Templates not found or files missing! Cannot create boot.img without templates. Aborting."
 		exit
 	fi
 	
@@ -431,7 +416,7 @@ function start_build_cmd {
 			make $defconfig_name
 		else
 			echo -e "+++ Config found, resuming normal operation"
-			if [ -e ".build_no" ]; then
+			if [ -e ".build_no"  ]; then
 				old_build_num=`cat .build_no`
 				new_build_num=$((old_build_num+1))
 				rm -r ".build_no"
@@ -449,6 +434,8 @@ function start_build_cmd {
 		if [[ $is_dirty -gt 0 ]]; then
 			echo -e "+++ Output is dirty, running make clean"
 			make clean
+			rm -r ".build_no"
+			echo -e "1" >> ".build_no"
 		else
 			echo -e "+++ Output is not dirty, resuming..."
 		fi
