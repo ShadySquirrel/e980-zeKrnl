@@ -6,12 +6,26 @@ on init
     export TERMINFO /system/etc/terminfo
     export TERM linux
 
+    # Set up the BFQIO hierarchy
+    chmod 0755 /sys/fs/cgroup
+    mkdir /sys/fs/cgroup/bfqio 0755 root system
+    mount cgroup none /sys/fs/cgroup/bfqio bfqio
+    chown root system /sys/fs/cgroup/bfqio/tasks
+    chmod 0666 /sys/fs/cgroup/bfqio/tasks
+
+    # Soft realtime class for display service
+    mkdir /sys/fs/cgroup/bfqio/rt-display 0755 root system
+    write /sys/fs/cgroup/bfqio/rt-display/bfqio.ioprio_class 1
+    write /sys/fs/cgroup/bfqio/rt-display/bfqio.ioprio 7
+    chown system system /sys/fs/cgroup/bfqio/rt-display/tasks
+    chmod 0664 /sys/fs/cgroup/bfqio/rt-display/tasks
+
 on post-fs-data
     mkdir /data/.ssh 0750 root shell
-	# Run sysinit
-    start sysinit
-    
+
 on boot
+    start sysinit
+
     chown system system /sys/block/mmcblk0/queue/scheduler
     chmod 0664 /sys/block/mmcblk0/queue/scheduler
     restorecon /sys/block/mmcblk0/queue/scheduler
@@ -21,36 +35,16 @@ on boot
 
     chown system system /dev/cpuctl/cpu.notify_on_migrate
     chmod 0664 /dev/cpuctl/cpu.notify_on_migrate
-    
-    chown root system /sys/class/timed_output/vibrator/amp
-	chmod 0664 /sys/class/timed_output/vibrator/amp
-	restorecon /sys/class/timed_output/vibrator/amp
-		
-	# Restore old LiveDisplay interface
-    chown root system /sys/devices/platform/kcal_ctrl.0/kcal
-    chown root system /sys/devices/platform/kcal_ctrl.0/kcal_ctrl
-    chmod 0664 /sys/devices/platform/kcal_ctrl.0/kcal
-    chmod 0664 /sys/devices/platform/kcal_ctrl.0/kcal_ctrl
-    restorecon /sys/devices/platform/kcal_ctrl.0/kcal
-    restorecon /sys/devices/platform/kcal_ctrl.0/kcal_ctrl
-    
+	
+	# allow non-rot apps to read governor information
+	# this assumes that SMP uses shared cpufreq policy for all CPUs
     chown system system /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
     chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
     chown system system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
     chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
     chown system system /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
     chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
-
-    # LiveDisplay sysfs - disabled because it produces blackouts! Let's leave this here for now...
-    #chown system system /sys/devices/virtual/graphics/fb0/aco
-    #chmod 0660 /sys/devices/virtual/graphics/fb0/aco
-    #chown system system /sys/devices/virtual/graphics/fb0/cabc
-    #chmod 0660 /sys/devices/virtual/graphics/fb0/cabc
-    #chown system system /sys/devices/virtual/graphics/fb0/rgb
-    #chmod 0660 /sys/devices/virtual/graphics/fb0/rgb
-    #chown system system /sys/devices/virtual/graphics/fb0/sre
-    #chmod 0660 /sys/devices/virtual/graphics/fb0/sre
-
+    
     # Define TCP delayed ack settings for WiFi & LTE
     chown system system /sys/kernel/ipv4/tcp_delack_seg
     chown system system /sys/kernel/ipv4/tcp_use_userconfig
@@ -63,28 +57,32 @@ on boot
 
     # Persistent properties (only created if persist exists)
     mkdir /persist/properties 0770 system system
-    
-    # Allow execution of sysinit
-	chown root system /system/bin/sysinit
-	chmod 0755 /system/bin/sysinit
-
-	# Allow execution of RRO_perm.sh
-	chown root system /system/bin/RRO_perm.sh
-	chmod 0755 /system/bin/RRO_perm.sh
-
-# adb over network
-on property:service.adb.tcp.port=5555
-    stop adbd
-    start adbd
-on property:service.adb.tcp.port=-1
-    stop adbd
-    start adbd
-
-# Fix /system/vendor/overlay folder perms this way [tmp fix]
-on property:sys.boot_completed=1
-    exec /system/bin/RRO_perm.sh
 
 # sysinit (/system/etc/init.d)
 service sysinit /system/bin/sysinit
     user root
     oneshot
+
+# adb over network
+on property:service.adb.tcp.port=5555
+    stop adbd
+    start adbd
+
+on property:service.adb.tcp.port=-1
+    stop adbd
+    start adbd
+
+# Configure IO scheduler
+on property:sys.io.scheduler=*
+    write /sys/block/mmcblk0/queue/scheduler ${sys.io.scheduler}
+
+on property:persist.sys.io.scheduler=*
+    setprop sys.io.scheduler ${persist.sys.io.scheduler}
+
+# Set slice_idle to 0 for CFQ
+on property:sys.io.scheduler=cfq
+    write /sys/block/mmcblk0/queue/iosched/slice_idle 0
+
+# Set slice_idle to 0 for BFQ
+on property:sys.io.scheduler=bfq
+    write /sys/block/mmcblk0/queue/iosched/slice_idle 0
