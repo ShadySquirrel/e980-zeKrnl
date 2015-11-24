@@ -2654,17 +2654,28 @@ config FORCE_FAST_CHARGE
 	  A simple sysfs interface to force adapters that
 	  are detected as USB to charge as AC.
 
-config SHADYCLOCKS_UNDERCLOCK
-	bool "Enable lower clock speeds than 384MHz"
+config SHADYCLOCKS
+	bool "Enable customized clock and voltage tables for APQ8064"
 	default y
 	help
-		This option enables lower clock speeds (down to 168MHz).
+		Setting this option as 'y' in defconfig will enable custom
+		clock and voltage table found in acpuclock-8064.c. 
+		
+		Disabling this option will default to 'stock' APQ8064T tables.
+		
+config SHADYCLOCKS_UNDERCLOCK
+	bool "Enable lower clock speeds than 384MHz"
+	depends on SHADYCLOCKS
+	default y
+	help
+		This option enables lower clock speeds (down to 168MHz). Depends on SHADYCLOCKS.
 
 config SHADYCLOCKS_OVERCLOCK
 	bool "Enable higher clock speeds than 1.7GHz"
+	depends on SHADYCLOCKS
 	default y
 	help
-		This option enables higher clock speeds than 1.7GHz (up to 2GHz)
+		This option enables higher clock speeds than 1.7GHz (up to 2GHz). Depends on SHADYCLOCKS.
 endif
 config LGE_IRRC
 	tristate "LGE_IRRC"
