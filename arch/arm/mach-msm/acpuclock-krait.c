@@ -922,12 +922,34 @@ void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
 #endif	/* CONFIG_CPU_VOTALGE_TABLE */
 
 #ifdef CONFIG_CPU_FREQ_MSM
-static struct cpufreq_frequency_table freq_table[NR_CPUS][35];
+
+// ShadyClocks: Set number of available freqencies...
+#if defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
+#define NO_FREQS 23
+#elif defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && !defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
+#define NO_FREQS 17
+#elif !defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
+#define NO_FREQS 21
+#else
+#define NO_FREQS 15
+#endif
+
+static struct cpufreq_frequency_table freq_table[NR_CPUS][NO_FREQS];
 
 static void __init cpufreq_table_init(void)
 {
 	int cpu;
-
+	
+// ShadyClocks: log info about configuration...
+#if defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
+dev_info(drv.dev, "[ShadyClocks] Both underclock and overclock are enabled!");
+#elif defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && !defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
+dev_info(drv.dev, "[ShadyClocks] Only underclock is enabled!");
+#elif !defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
+dev_info(drv.dev, "[ShadyClocks] Only overclock is enabled!");
+#else
+dev_info(drv.dev, "[ShadyClocks] Both underclock and overclock are disabled!");
+#endif
 	for_each_possible_cpu(cpu) {
 		int i, freq_cnt = 0;
 		/* Construct the freq_table tables from acpu_freq_tbl. */
@@ -946,7 +968,7 @@ static void __init cpufreq_table_init(void)
 		freq_table[cpu][freq_cnt].index = freq_cnt;
 		freq_table[cpu][freq_cnt].frequency = CPUFREQ_TABLE_END;
 
-		dev_info(drv.dev, "CPU%d: %d frequencies supported\n",
+		dev_info(drv.dev, "[ShadyClocks] CPU%d: %d frequencies supported\n",
 			cpu, freq_cnt);
 
 		/* Register table with CPUFreq. */
@@ -1034,7 +1056,9 @@ static void krait_apply_vmin(struct acpu_level *tbl)
 static int __init get_speed_bin(u32 pte_efuse)
 {
 	uint32_t speed_bin;
-
+#if defined(CONFIG_SHADYCLOCKS_OVERCLOCK) || defined(CONFIG_SHADYCLOCKS_UNDERCLOCK)
+	speed_bin = 1;
+#else
 	speed_bin = pte_efuse & 0xF;
 	if (speed_bin == 0xF)
 		speed_bin = (pte_efuse >> 4) & 0xF;
@@ -1045,15 +1069,18 @@ static int __init get_speed_bin(u32 pte_efuse)
 	} else {
 		dev_info(drv.dev, "SPEED BIN: %d\n", speed_bin);
 	}
-
+#endif
 	g_speed_bin = speed_bin;
-
+	dev_info(drv.dev, "[ShadyClocks] Selected SPEED BIN: %d\n", speed_bin);
 	return speed_bin;
 }
 
 static int __init get_pvs_bin(u32 pte_efuse)
 {
 	uint32_t pvs_bin;
+#if defined(CONFIG_SHADYCLOCKS_OVERCLOCK) || defined(CONFIG_SHADYCLOCKS_UNDERCLOCK)
+	pvs_bin = 1;
+#else
 
 	pvs_bin = (pte_efuse >> 10) & 0x7;
 	if (pvs_bin == 0x7)
@@ -1065,9 +1092,9 @@ static int __init get_pvs_bin(u32 pte_efuse)
 	} else {
 		dev_info(drv.dev, "ACPU PVS: %d\n", pvs_bin);
 	}
-
+#endif
 	g_pvs_bin = pvs_bin;
-
+	dev_info(drv.dev, "[ShadyClocks] Selected PVS BIN: %d\n", pvs_bin);
 	return pvs_bin;
 }
 

@@ -2654,6 +2654,17 @@ config FORCE_FAST_CHARGE
 	  A simple sysfs interface to force adapters that
 	  are detected as USB to charge as AC.
 
+config SHADYCLOCKS_UNDERCLOCK
+	bool "Enable lower clock speeds than 384MHz"
+	default y
+	help
+		This option enables lower clock speeds (down to 168MHz).
+
+config SHADYCLOCKS_OVERCLOCK
+	bool "Enable higher clock speeds than 1.7GHz"
+	default y
+	help
+		This option enables higher clock speeds than 1.7GHz (up to 2GHz)
 endif
 config LGE_IRRC
 	tristate "LGE_IRRC"
