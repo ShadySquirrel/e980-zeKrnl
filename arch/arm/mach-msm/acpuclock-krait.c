@@ -924,6 +924,7 @@ void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
 #ifdef CONFIG_CPU_FREQ_MSM
 
 // ShadyClocks: Set number of available freqencies...
+#ifdef CONFIG_SHADYCLOCKS // ShadyClocks to the rescue...
 #if defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
 #define NO_FREQS 23
 #elif defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && !defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
@@ -932,6 +933,9 @@ void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
 #define NO_FREQS 21
 #else
 #define NO_FREQS 15
+#endif
+#else
+#define NO_FREQS 35;
 #endif
 
 static struct cpufreq_frequency_table freq_table[NR_CPUS][NO_FREQS];
@@ -1056,7 +1060,7 @@ static void krait_apply_vmin(struct acpu_level *tbl)
 static int __init get_speed_bin(u32 pte_efuse)
 {
 	uint32_t speed_bin;
-#if defined(CONFIG_SHADYCLOCKS_OVERCLOCK) || defined(CONFIG_SHADYCLOCKS_UNDERCLOCK)
+#if defined(CONFIG_SHADYCLOCKS)
 	speed_bin = 1;
 #else
 	speed_bin = pte_efuse & 0xF;
@@ -1078,7 +1082,7 @@ static int __init get_speed_bin(u32 pte_efuse)
 static int __init get_pvs_bin(u32 pte_efuse)
 {
 	uint32_t pvs_bin;
-#if defined(CONFIG_SHADYCLOCKS_OVERCLOCK) || defined(CONFIG_SHADYCLOCKS_UNDERCLOCK)
+#if defined(CONFIG_SHADYCLOCKS)
 	pvs_bin = 1;
 #else
 
