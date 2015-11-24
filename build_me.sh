@@ -19,7 +19,7 @@
 echo -e "#############################################################################################################"
 echo -e "###### zeKrnl building script"
 echo -e "######"
-echo -e "###### Version 2.2, 30/10/2015 - Ultimate Madness (tm) edition."
+echo -e "###### Version 2.3, 24/11/2015 - (Ultimate Madness)³ (tm) edition."
 echo -e "######"
 echo -e "###### Written by ShadySquirrel @ github (https://github.com/ShadySquirrel/) AKA ShadySquirrel @ XDA"
 echo -e "###### Big thanks to my Uni, for my lack of sleep and increased desire to do anything else but study."
@@ -61,6 +61,9 @@ jobs=2
 
 # initrd template folder
 template_bootimg="initrd"
+
+# Kernel obj. output folder
+KBUILD_OUTPUT="$PWD/build_tools/tmp/OBJ/"
 
 # Kernel name
 KERNEL_NAME=$(sed -n '/DEVEL_NAME/p' Makefile | head -1 | cut -d'=' -f 2)
@@ -167,12 +170,12 @@ function generate_bootImg {
 	fi
 	
 	# Generate new boot.img
-	if [ -e "arch/$ARCH/boot/zImage" ]; then
+	if [ -e "$KBUILD_OUTPUT/arch/$ARCH/boot/zImage" ]; then
 		echo -e "+ Starting generation of new boot.img"
 		echo -e " "
 		
 		echo -e "++ Copying zImage..."
-		cp -rvf "arch/$ARCH/boot/zImage" "build_tools/tmp/boot"
+		cp -rvf "$KBUILD_OUTPUT/arch/$ARCH/boot/zImage" "build_tools/tmp/boot"
 		
 		
 		
@@ -386,9 +389,9 @@ function start_build_cmd {
 	if [[ $NEW_CONFIG -eq 1 ]]; then
 		echo -e "++ Removing any old configs, cleaning up and making new config"
 		# Check if old config is there, delete it and run mrproper
-		if [ -e "$PWD/.config" ]; then 
+		if [ -e "$KBUILD_OUTPUT/.config" ]; then 
 			make mrproper
-			rm -rvf "$PWD/.config";
+			rm -rvf "$KBUILD_OUTPUT/.config";
 		fi
 		
 		make $defconfig_name
@@ -399,7 +402,7 @@ function start_build_cmd {
 		echo -e "1" >> ".build_no"
 		
 		# Check if configuration is actually made
-		if [ -e "$PWD/.config" ]; then
+		if [ -e "$KBUILD_OUTPUT/.config" ]; then
 			echo -e " "
 			echo -e "+++ New configuration created!"
 			echo -e " "
@@ -411,7 +414,7 @@ function start_build_cmd {
 	else
 		# Let's make sure user isn't a complete idiot...
 		echo -e "++ Checking if config exists..."
-		if [ ! -e "$PWD/.config" ]; then
+		if [ ! -e "$KBUILD_OUTPUT/.config" ]; then
 			echo -e "+++ Config doesn't exist, creating!"
 			make $defconfig_name
 		else
@@ -430,7 +433,7 @@ function start_build_cmd {
 	##### CHECK CLEAN BLOCK #####	
 	if [[ $CLEAN_UP -eq 1 ]]; then
 		echo -e "++ Checking if there is something to clean..."
-		is_dirty=$(find . -name "*.o" | wc -l)
+		is_dirty=$(find $KBUILD_OUTPUT -name "*.o" | wc -l)
 		if [[ $is_dirty -gt 0 ]]; then
 			echo -e "+++ Output is dirty, running make clean"
 			make clean
@@ -448,11 +451,11 @@ function start_build_cmd {
 	echo -e "+ All set. Starting build"
 	echo -e " "
 	echo -e "++ Starting build #$(cat .build_no)"
-	echo -e " "				
+	echo -e " "	
 	time make -j$jobs;
 	
 	# Check if build was a success and if yes, ask user for boot.img generation
-	if [ -e "$PWD/arch/$ARCH/boot/zImage" ]; then
+	if [ -e "$KBUILD_OUTPUT/arch/$ARCH/boot/zImage" ]; then
 		echo -e " "
 		echo -e "+ Build successful."
 	else
@@ -470,7 +473,7 @@ function start_build_cmd {
 		# Check if there is an old boot.img, and remove it.
 		if [ -e "$PWD/build_tools/boot.img" ]; then
 			echo -e "+ Removing boot.img from previous build"
-			rm -rvf "$PWD/build_tools/boot.img"
+			rm -rvf "$PWD/build_tools/out/boot.img"
 		fi
 	fi
 	
@@ -498,7 +501,6 @@ function createVenv {
 ## Print help message if some of script parameters are bad
 function print_error_msg {
 	echo -e "/*********************** HELP! ***************************/"
-	echo -e "To use turn-table mode, don't pass any arguments."
 	echo -e " "
 	echo -e "To automate script's work, pass needed arguments:"
 	echo -e "\t -c || --clean -> Clean up before building"
@@ -553,11 +555,21 @@ else
 	exit
 fi
 
+### Check for build OUT directory
+echo -e " "
+echo -e "-> Checking does OUT directory exist..."
+if [ ! -d "$KBUILD_OUTPUT" ]; then
+	echo -e "+ KBUILD_OUTPUT dir ($KBUILD_OUTPUT) doesn't exist, creating..."
+	mkdir -p "$KBUILD_OUTPUT"
+fi
+
 ### We're alive, let's create needed variables
 echo -e " "
 echo -e "-> Setting variables:"
 export CROSS_COMPILE=$toolchain_path
 echo -e "+ CROSS_COMPILE=$CROSS_COMPILE"
+export KBUILD_OUTPUT=$KBUILD_OUTPUT
+echo -e "+ KBUILD_OUTPUT=$KBUILD_OUTPUT"
 export ARCH=$device_arch
 echo -e "+ ARCH=$ARCH"
 echo -e "+ building config $defconfig_name"
