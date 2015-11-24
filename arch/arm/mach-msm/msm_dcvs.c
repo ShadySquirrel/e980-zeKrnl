@@ -146,7 +146,17 @@ static struct dcvs_core core_list[CORES_MAX];
 
 static struct kobject *cores_kobj;
 
+// ShadyClocks: Set number of available freqencies...
+#if defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
+#define DCVS_MAX_NUM_FREQS 23
+#elif defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && !defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
+#define DCVS_MAX_NUM_FREQS 17
+#elif !defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
+#define DCVS_MAX_NUM_FREQS 21
+#else
 #define DCVS_MAX_NUM_FREQS 15
+#endif
+
 static struct msm_dcvs_freq_entry cpu_freq_tbl[DCVS_MAX_NUM_FREQS];
 static unsigned num_cpu_freqs;
 static struct msm_dcvs_platform_data *dcvs_pdata;
