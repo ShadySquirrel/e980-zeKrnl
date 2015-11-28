@@ -2654,20 +2654,6 @@ config FORCE_FAST_CHARGE
 	  A simple sysfs interface to force adapters that
 	  are detected as USB to charge as AC.
 
-config SHADYCLOCKS_UNDERCLOCK
-	bool "Enable underclocking"
-	default y
-	help
-		Enabling this adds underclocking support for APQ8064 processors.
-		Developed for Optimus G Pro E98x by ShadySquirrel @ XDA
-
-config SHADYCLOCKS_OVERCLOCK
-	bool "Enable overclocking"
-	default y
-	help
-		Enabling this adds overclocking support for APQ8064 processors.
-		Developed for Optimus G Pro E98x by ShadySquirrel @ XDA
-
 endif
 config LGE_IRRC
 	tristate "LGE_IRRC"

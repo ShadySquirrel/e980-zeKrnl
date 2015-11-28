@@ -922,28 +922,14 @@ void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
 #endif	/* CONFIG_CPU_VOTALGE_TABLE */
 
 #ifdef CONFIG_CPU_FREQ_MSM
-#if defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK) // both underclock/overclock enabled
-static struct cpufreq_frequency_table freq_table[NR_CPUS][19];
-#elif defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) || defined(CONFIG_SHADYCLOCKS_OVERCLOCK) // only underclock/overclock is enabled
-static struct cpufreq_frequency_table freq_table[NR_CPUS][17];
-#else // all disabled!
-static struct cpufreq_frequency_table freq_table[NR_CPUS][15];
-#endif // end checks.
-
+static struct cpufreq_frequency_table freq_table[NR_CPUS][35];
 
 static void __init cpufreq_table_init(void)
 {
 	int cpu;
-#if defined(CONFIG_SHADYCLOCKS_UNDERCLOCK)
-	dev_info(drv.dev, "[ShadyClocks] Underclock enabled");
-#endif
-#if defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
-	dev_info(drv.dev, "[ShadyClocks] Overclock enabled");
-#endif
 
 	for_each_possible_cpu(cpu) {
 		int i, freq_cnt = 0;
-		unsigned long int curr_freq = 0;
 		/* Construct the freq_table tables from acpu_freq_tbl. */
 		for (i = 0; drv.acpu_freq_tbl[i].speed.khz != 0
 				&& freq_cnt < ARRAY_SIZE(*freq_table); i++) {
@@ -951,11 +937,7 @@ static void __init cpufreq_table_init(void)
 				freq_table[cpu][freq_cnt].index = freq_cnt;
 				freq_table[cpu][freq_cnt].frequency
 					= drv.acpu_freq_tbl[i].speed.khz;
-				curr_freq = drv.acpu_freq_tbl[i].speed.khz;
 				freq_cnt++;
-				dev_info(drv.dev, "[ShadyClocks] CPU%d: adding %lu kHz to frequency list\n",
-			cpu, curr_freq);
-
 			}
 		}
 		/* freq_table not big enough to store all usable freqs. */
@@ -964,7 +946,7 @@ static void __init cpufreq_table_init(void)
 		freq_table[cpu][freq_cnt].index = freq_cnt;
 		freq_table[cpu][freq_cnt].frequency = CPUFREQ_TABLE_END;
 
-		dev_info(drv.dev, "[ShadyClocks] CPU%d: %d frequencies supported\n",
+		dev_info(drv.dev, "CPU%d: %d frequencies supported\n",
 			cpu, freq_cnt);
 
 		/* Register table with CPUFreq. */
@@ -1052,8 +1034,7 @@ static void krait_apply_vmin(struct acpu_level *tbl)
 static int __init get_speed_bin(u32 pte_efuse)
 {
 	uint32_t speed_bin;
-	// Commenting this out, acpuclock-8064.c now has only one table
-	/*
+
 	speed_bin = pte_efuse & 0xF;
 	if (speed_bin == 0xF)
 		speed_bin = (pte_efuse >> 4) & 0xF;
@@ -1068,17 +1049,12 @@ static int __init get_speed_bin(u32 pte_efuse)
 	g_speed_bin = speed_bin;
 
 	return speed_bin;
-	*/
-	speed_bin = 1;
-	dev_info(drv.dev, "[ShadyClocks] SPEED BIN: %d\n", speed_bin);
-	return speed_bin;
 }
 
 static int __init get_pvs_bin(u32 pte_efuse)
 {
 	uint32_t pvs_bin;
-	// Commenting this out, acpuclock-8064.c now has only one table
-	/*
+
 	pvs_bin = (pte_efuse >> 10) & 0x7;
 	if (pvs_bin == 0x7)
 		pvs_bin = (pte_efuse >> 13) & 0x7;
@@ -1092,10 +1068,6 @@ static int __init get_pvs_bin(u32 pte_efuse)
 
 	g_pvs_bin = pvs_bin;
 
-	return pvs_bin;
-	*/
-	pvs_bin = 1;
-	dev_info(drv.dev, "[ShadyClocks] ACPU PVS: %d\n", pvs_bin);
 	return pvs_bin;
 }
 

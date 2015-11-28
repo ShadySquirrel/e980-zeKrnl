@@ -146,20 +146,7 @@ static struct dcvs_core core_list[CORES_MAX];
 
 static struct kobject *cores_kobj;
 
-/* ShadySquirrel edit: UNDERCLOCKING/OVERCLOCKING
- * Original value was:
-	#define DCVS_MAX_NUM_FREQS 15
- * We need to set that value depending on state of CONFIG_SHADYCLOCKS_UNDERCLOCK
- * and CONFIG_SHADYCLOCKS_OVERCLOCK setting, because they can be turned on/off
- */
-#if defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK) // both underclock/overclock enabled
-#define DCVS_MAX_NUM_FREQS 19
-#elif defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) || defined(CONFIG_SHADYCLOCKS_OVERCLOCK) // only underclock/overclock is enabled
-#define DCVS_MAX_NUM_FREQS 17
-#else // no clock changes at all
 #define DCVS_MAX_NUM_FREQS 15
-#endif // end all checks
-
 static struct msm_dcvs_freq_entry cpu_freq_tbl[DCVS_MAX_NUM_FREQS];
 static unsigned num_cpu_freqs;
 static struct msm_dcvs_platform_data *dcvs_pdata;
