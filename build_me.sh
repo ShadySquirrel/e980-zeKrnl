@@ -278,11 +278,11 @@ function generate_flashableZip {
 		# Copy modules
 		echo -e " "
 		echo -e "++ Copying modules"
-		cp -rvf "drivers/crypto/msm/qce40.ko" "build_tools/tmp/zip_file/system/lib/modules"
-		cp -rvf "drivers/crypto/msm/qcedev.ko" "build_tools/tmp/zip_file/system/lib/modules"
-		cp -rvf "drivers/crypto/msm/qcrypto.ko" "build_tools/tmp/zip_file/system/lib/modules"
-		cp -rvf "drivers/scsi/scsi_wait_scan.ko" "build_tools/tmp/zip_file/system/lib/modules"
-		cp -rvf "block/test-iosched.ko" "build_tools/tmp/zip_file/system/lib/modules"
+		cp -rvf "$KBUILD_OUTPUT/drivers/crypto/msm/qce40.ko" "build_tools/tmp/zip_file/system/lib/modules"
+		cp -rvf "$KBUILD_OUTPUT/drivers/crypto/msm/qcedev.ko" "build_tools/tmp/zip_file/system/lib/modules"
+		cp -rvf "$KBUILD_OUTPUT/drivers/crypto/msm/qcrypto.ko" "build_tools/tmp/zip_file/system/lib/modules"
+		cp -rvf "$KBUILD_OUTPUT/drivers/scsi/scsi_wait_scan.ko" "build_tools/tmp/zip_file/system/lib/modules"
+		cp -rvf "$KBUILD_OUTPUT/block/test-iosched.ko" "build_tools/tmp/zip_file/system/lib/modules"
 		
 		echo -e " "
 		# Get build number.
