@@ -1,0 +1,22 @@
+#
+# ADDITIONAL_DEFAULT_PROPERTIES
+#
+ro.secure=1
+ro.allow.mock.location=0
+ro.debuggable=1
+ro.zygote=zygote32
+dalvik.vm.image-dex2oat-Xms=64m
+dalvik.vm.image-dex2oat-Xmx=64m
+dalvik.vm.dex2oat-Xms=64m
+dalvik.vm.dex2oat-Xmx=512m
+ro.dalvik.vm.native.bridge=0
+debug.atrace.tags.enableflags=0
+rild.libpath=/system/lib/libril-qc-qmi-1.so
+ro.adb.secure=1
+persist.sys.usb.config=mtp
+#
+# BOOTIMAGE_BUILD_PROPERTIES
+#
+ro.bootimage.build.date=Thu Dec 3 00:39:46 CET 2015
+ro.bootimage.build.date.utc=1449099587
+ro.bootimage.build.fingerprint=lge/slim_e980/e980:6.0/MRA58V/aaa14c4b2b:userdebug/test-keys
