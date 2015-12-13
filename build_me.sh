@@ -60,7 +60,7 @@ defconfig_name="zeKrnl_e980_defconfig"
 jobs=2
 
 # initrd template folder
-template_bootimg="initrd"
+template_bootimg="initrd-mm"
 
 # Kernel obj. output folder
 KBUILD_OUTPUT="$PWD/build_tools/tmp/OBJ/"
