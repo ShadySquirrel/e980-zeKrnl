@@ -19,7 +19,7 @@
 echo -e "#############################################################################################################"
 echo -e "###### zeKrnl building script"
 echo -e "######"
-echo -e "###### Version 2.3, 24/11/2015 - (Ultimate Madness)³ (tm) edition."
+echo -e "###### Version 2.4, 14/12/2015 - (Ultimate Madness)^4 (tm) edition."
 echo -e "######"
 echo -e "###### Written by ShadySquirrel @ github (https://github.com/ShadySquirrel/) AKA ShadySquirrel @ XDA"
 echo -e "###### Big thanks to my Uni, for my lack of sleep and increased desire to do anything else but study."
@@ -510,6 +510,8 @@ function print_error_msg {
 	echo -e "\t -s || --sign -> Sign flashable zip"
 	echo -e "\t -h || --help -> displays this message"
 	echo -e "\t -j=# || --jobs=# -> number of jobs/threads"
+	echo -e "\t -d=name || --def=name -> defconfig name"
+	echo -e "\t --init=name || override initrd"
 	echo -e "# is a numeric value; 1 for yes, 2 for no"
 	echo -e "If some of variables aren't defined, script will let it's"
 	echo -e "own free will decide..."
@@ -620,6 +622,22 @@ if [[ $# -gt 0 ]]; then
 				fi
 				shift
 				;;
+			-d=* | --def=*)
+				defconfig="${i#*=}"
+				if [ $nJobs -gt 0 ]; then
+					defconfig_name=$defconfig
+					echo -e "+ Using $defconfig as config for build config"
+				fi
+				shift
+				;;
+			--init=*)
+				initf="${i#*=}"
+				if [ $nJobs -gt 0 ]; then
+					template_bootimg=$initf
+					echo -e "+ Using $initf as initrd template"
+				fi
+				shift
+				;;
 			* )
 				print_error_msg;
 				break;;
@@ -633,6 +651,5 @@ if [[ $# -gt 0 ]]; then
 	
 	start_build_cmd;
 else
-	check_stuff;
-	start_build;
+	print_error_msg
 fi
