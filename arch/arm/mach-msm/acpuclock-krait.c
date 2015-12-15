@@ -926,9 +926,9 @@ void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
 // ShadyClocks: Set number of available freqencies...
 #ifdef CONFIG_SHADYCLOCKS // ShadyClocks to the rescue...
 #if defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
-#define NO_FREQS 23
+#define NO_FREQS 25
 #elif defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && !defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
-#define NO_FREQS 17
+#define NO_FREQS 19
 #elif !defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
 #define NO_FREQS 21
 #else
