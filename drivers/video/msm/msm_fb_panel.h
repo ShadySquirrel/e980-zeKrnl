@@ -64,12 +64,6 @@ enum {
 /* panel info type */
 struct lcd_panel_info {
 	__u32 vsync_enable;
-	__u32 primary_vsync_init;
-	__u32 primary_rdptr_irq;
-	__u32 primary_start_pos;
-	__u32 vsync_threshold_continue;
-	__u32 vsync_threshold_start;
-	__u32 total_lines;
 	__u32 refx100;
 	__u32 v_back_porch;
 	__u32 v_front_porch;
@@ -215,12 +209,6 @@ struct msm_fb_panel_data {
 	int (*clk_func) (int enable);
 	int (*fps_level_change) (struct platform_device *pdev,
 					u32 fps_level);
-#ifdef CONFIG_CABC_DIMMING_SWITCH
-	void (*dimming_on) (struct msm_fb_data_type *);
-#endif
-#ifdef CONFIG_SRE_CONTROL
-	void (*sre_ctrl) (struct msm_fb_data_type *, unsigned long);
-#endif
 };
 
 /*===========================================================================

@@ -1,6 +1,7 @@
 /*
+ * include/linux/ion.h
  *
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -91,17 +92,6 @@ enum cp_mem_usage {
  * Macro should be used with ion_heap_ids defined above.
  */
 #define ION_HEAP(bit) (1 << (bit))
-#define ion_full_heap_mask (ION_HEAP(ION_CP_MM_HEAP_ID) | \
-			   ION_HEAP(ION_CP_MFC_HEAP_ID) | \
-			   ION_HEAP(ION_CP_WB_HEAP_ID) | \
-			   ION_HEAP(ION_CAMERA_HEAP_ID) | \
-			   ION_HEAP(ION_SF_HEAP_ID) | \
-			   ION_HEAP(ION_IOMMU_HEAP_ID) | \
-			   ION_HEAP(ION_QSECOM_HEAP_ID) | \
-			   ION_HEAP(ION_AUDIO_HEAP_ID) | \
-			   ION_HEAP(ION_MM_FIRMWARE_HEAP_ID) | \
-			   ION_HEAP(ION_SYSTEM_HEAP_ID) )
-
 
 #define ION_ADSP_HEAP_NAME	"adsp"
 #define ION_VMALLOC_HEAP_NAME	"vmalloc"
@@ -285,7 +275,6 @@ static inline int msm_ion_unsecure_heap_2_0(int heap_id,
  * of the handle, p + offset through p + offset + length will have
  * the cache operations performed
  */
-/*
 struct ion_flush_data {
 	struct ion_handle *handle;
 	int fd;
@@ -293,7 +282,7 @@ struct ion_flush_data {
 	unsigned int offset;
 	unsigned int length;
 };
-*/
+
 /* struct ion_flag_data - information about flags for this buffer
  *
  * @handle:	handle to get flags from
@@ -302,12 +291,11 @@ struct ion_flush_data {
  * Takes handle as an input and outputs the flags from the handle
  * in the flag field.
  */
-/*
 struct ion_flag_data {
 	struct ion_handle *handle;
 	unsigned long flags;
 };
-*/
+
 #define ION_IOC_MSM_MAGIC 'M'
 
 /**
@@ -317,7 +305,6 @@ struct ion_flag_data {
  */
 #define ION_IOC_CLEAN_CACHES	_IOWR(ION_IOC_MSM_MAGIC, 0, \
 						struct ion_flush_data)
-
 /**
  * DOC: ION_IOC_INV_CACHES - invalidate the caches
  *
@@ -341,4 +328,5 @@ struct ion_flag_data {
  */
 #define ION_IOC_GET_FLAGS		_IOWR(ION_IOC_MSM_MAGIC, 3, \
 						struct ion_flag_data)
+
 #endif
