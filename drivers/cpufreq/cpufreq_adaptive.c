@@ -31,14 +31,9 @@
 
 #define DEF_FREQUENCY_DOWN_DIFFERENTIAL		(10)
 #define DEF_FREQUENCY_UP_THRESHOLD		(80)
-// [30122015] ShadySquirrel: add DEF_MIN_SAMPLERATE, DEF_MAX_SAMPLERATE and DEF_SAMPLERATE
-#define DEF_FREQUENCY_MIN_SAMPLERATE (54000)
-#define DEF_FREQUENCY_MAX_SAMPLERATE (108000)
-#define DEF_FREQUENCY_SAMPLERATE (108000)
-// End of ShadySquirrel's edit
 #define MICRO_FREQUENCY_DOWN_DIFFERENTIAL	(3)
 #define MICRO_FREQUENCY_UP_THRESHOLD		(95)
-#define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(54000)
+#define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(10000)
 #define MIN_FREQUENCY_UP_THRESHOLD		(11)
 #define MAX_FREQUENCY_UP_THRESHOLD		(100)
 #define MIN_ONDEMAND_THRESHOLD			(4)
@@ -138,11 +133,9 @@ static struct dbs_tuners {
 	unsigned int ignore_nice;
 	unsigned int io_is_busy;
 } dbs_tuners_ins = {
-	.sampling_rate = DEF_FREQUENCY_SAMPLERATE,
 	.up_threshold = DEF_FREQUENCY_UP_THRESHOLD,
 	.down_differential = DEF_FREQUENCY_DOWN_DIFFERENTIAL,
 	.ignore_nice = 0,
-	.io_is_busy = 0,
 };
 
 static inline cputime64_t get_cpu_iowait_time(unsigned int cpu, cputime64_t *wall)
