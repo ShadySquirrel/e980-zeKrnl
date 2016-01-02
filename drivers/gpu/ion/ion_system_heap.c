@@ -508,7 +508,7 @@ int ion_system_contig_heap_map_iommu(struct ion_buffer *buffer,
 	}
 	page = virt_to_page(buffer->vaddr);
 
-	sglist = kmalloc(sizeof(*sglist), GFP_KERNEL);
+	sglist = vmalloc(sizeof(*sglist));
 	if (!sglist)
 		goto out1;
 
@@ -531,13 +531,13 @@ int ion_system_contig_heap_map_iommu(struct ion_buffer *buffer,
 		if (ret)
 			goto out2;
 	}
-	kfree(sglist);
+	vfree(sglist);
 	return ret;
 out2:
 	iommu_unmap_range(domain, data->iova_addr, buffer->size);
 
 out1:
-	kfree(sglist);
+	vfree(sglist);
 	msm_free_iova_address(data->iova_addr, domain_num, partition_num,
 						data->mapped_size);
 out:

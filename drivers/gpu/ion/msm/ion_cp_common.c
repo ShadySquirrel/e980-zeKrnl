@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2011 Google, Inc
- * Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -37,6 +37,7 @@ int ion_cp_change_chunks_state(unsigned long chunks, unsigned int nchunks,
 				int lock)
 {
 	struct cp2_lock_req request;
+	u32 resp;
 
 	request.mem_usage = usage;
 	request.lock = lock;
@@ -46,7 +47,7 @@ int ion_cp_change_chunks_state(unsigned long chunks, unsigned int nchunks,
 	request.chunks.chunk_size = chunk_size;
 
 	return scm_call(SCM_SVC_CP, MEM_PROTECT_LOCK_ID,
-			&request, sizeof(request), NULL, 0);
+			&request, sizeof(request), &resp, sizeof(resp));
 
 }
 

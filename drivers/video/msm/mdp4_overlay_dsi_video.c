@@ -195,12 +195,6 @@ int mdp4_dsi_video_pipe_commit(int cndx, int wait, u32 *release_busy)
 	undx =  vctrl->update_ndx;
 	vp = &vctrl->vlist[undx];
 	pipe = vctrl->base_pipe;
-	if (pipe == NULL) {
-		pr_err("%s: NO base pipe\n", __func__);
-		mutex_unlock(&vctrl->update_lock);
-		return 0;
-	}
-
 	mixer = pipe->mixer_num;
 
 	mdp_update_pm(vctrl->mfd, vctrl->vsync_time);
@@ -221,6 +215,9 @@ int mdp4_dsi_video_pipe_commit(int cndx, int wait, u32 *release_busy)
 	}
 	mutex_unlock(&vctrl->update_lock);
 
+	/* free previous committed iommu back to pool */
+	mdp4_overlay_iommu_unmap_freelist(mixer);
+
 	spin_lock_irqsave(&vctrl->spin_lock, flags);
 	if (vctrl->ov_koff != vctrl->ov_done) {
 		spin_unlock_irqrestore(&vctrl->spin_lock, flags);
@@ -230,6 +227,8 @@ int mdp4_dsi_video_pipe_commit(int cndx, int wait, u32 *release_busy)
 	}
 	spin_unlock_irqrestore(&vctrl->spin_lock, flags);
 
+	mdp4_overlay_mdp_perf_upd(vctrl->mfd, 1);
+
 	pipe = vp->plist;
 
 	for (i = 0; i < OVERLAY_PIPE_MAX; i++, pipe++) {
@@ -237,38 +236,9 @@ int mdp4_dsi_video_pipe_commit(int cndx, int wait, u32 *release_busy)
 			cnt++;
 			real_pipe = mdp4_overlay_ndx2pipe(pipe->pipe_ndx);
 			if (real_pipe && real_pipe->pipe_used) {
-				/*
-				 * commit pipes which are in pending queue
-				 * and not be unset yet
-				 */
+				/* pipe not unset */
 				mdp4_overlay_vsync_commit(pipe);
 			}
-		}
-	}
-
-	mdp4_mixer_stage_commit(mixer);
-
-	/* start timing generator & mmu if they are not started yet */
-	mdp4_overlay_dsi_video_start();
-
-	/*
-	 * there has possibility that pipe commit come very close to next vsync
-	 * this may cause two consecutive pie_commits happen within same vsync
-	 * period which casue iommu page fault when previous iommu buffer
-	 * freed. Set ION_IOMMU_UNMAP_DELAYED flag at ion_map_iommu() to
-	 * add delay unmap iommu buffer to fix this problem.
-	 * Also ion_unmap_iommu() may take as long as 9 ms to free an ion buffer.
-	 * therefore mdp4_overlay_iommu_unmap_freelist(mixer) should be called
-	 * ater stage_commit() to ensure pipe_commit (up to stage_commit)
-	 * is completed within vsync period.
-	 */
-
-	/* free previous committed iommu back to pool */
-	mdp4_overlay_iommu_unmap_freelist(mixer);
-
-	pipe = vp->plist;
-	for (i = 0; i < OVERLAY_PIPE_MAX; i++, pipe++) {
-		if (pipe->pipe_used) {
 			/* free previous iommu to freelist
 			* which will be freed at next
 			* pipe_commit
@@ -277,6 +247,16 @@ int mdp4_dsi_video_pipe_commit(int cndx, int wait, u32 *release_busy)
 			pipe->pipe_used = 0; /* clear */
 		}
 	}
+
+	mdp4_mixer_stage_commit(mixer);
+
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT) || defined(CONFIG_FB_MSM_MIPI_HITACHI_VIDEO_HD_PT)
+	/* start timing generator & mmu if they are not started yet */
+	mdp4_overlay_dsi_video_start();
+#elif defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT_PANEL)
+//	mdp4_overlay_dsi_video_start();
+#endif
 
 	pipe = vctrl->base_pipe;
 	spin_lock_irqsave(&vctrl->spin_lock, flags);
@@ -397,7 +377,9 @@ static void mdp4_dsi_video_wait4dmap(int cndx)
 	if (atomic_read(&vctrl->suspend) > 0)
 		return;
 
-	wait_for_completion(&vctrl->dmap_comp);
+	if (!wait_for_completion_timeout(
+			&vctrl->dmap_comp, msecs_to_jiffies(100)))
+		pr_err("%s %d  TIMEOUT_\n", __func__, __LINE__);
 }
 
 
@@ -434,7 +416,18 @@ static void mdp4_dsi_video_wait4ov(int cndx)
 	if (atomic_read(&vctrl->suspend) > 0)
 		return;
 
-	wait_for_completion(&vctrl->ov_comp);
+	if (!wait_for_completion_timeout(
+			&vctrl->ov_comp, msecs_to_jiffies(100))){
+		pr_err("%s %d  TIMEOUT_\n", __func__, __LINE__);
+#ifdef CONFIG_MACH_LGE
+		/* LGE_CHANGE
+		 * Workaround for BLT hang issue
+		 * 2012-10-29, baryun.hwang@lge.com
+		 */
+		mdp4_dsi_video_blt_stop(vctrl->mfd);
+		mdp4_dsi_video_blt_start(vctrl->mfd);
+#endif
+	}
 }
 
 ssize_t mdp4_dsi_video_show_event(struct device *dev,
@@ -537,19 +530,6 @@ static void mdp4_dsi_video_tg_off(struct vsycn_ctrl *vctrl)
 	msleep(20);
 }
 
-int mdp4_dsi_video_splash_done(void)
-{
-	struct vsycn_ctrl *vctrl;
-	int cndx = 0;
-
-	vctrl = &vsync_ctrl_db[cndx];
-
-	mdp4_dsi_video_tg_off(vctrl);
-	mipi_dsi_controller_cfg(0);
-
-	return 0;
-}
-
 int mdp4_dsi_video_on(struct platform_device *pdev)
 {
 	int dsi_width;
@@ -604,14 +584,13 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	mutex_lock(&mfd->dma->ov_mutex);
-
 	vctrl->mfd = mfd;
 	vctrl->dev = mfd->fbi->dev;
 	vctrl->blt_ctrl = pinfo->lcd.blt_ctrl;
 	vctrl->vsync_irq_enabled = 0;
 	vsync_irq_cnt = 0;
 
+	printk(KERN_INFO "[LCD][DEBUG] %s is started.. \n", __func__);
 	/* mdp clock on */
 	mdp_clk_ctrl(1);
 
@@ -625,11 +604,10 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 	if (vctrl->base_pipe == NULL) {
 		ptype = mdp4_overlay_format2type(mfd->fb_imgType);
 		if (ptype < 0)
-			printk(KERN_INFO "%s: format2type failed\n", __func__);
+			printk(KERN_INFO "[LCD][DEBUG] %s: format2type failed\n", __func__);
 		pipe = mdp4_overlay_pipe_alloc(ptype, MDP4_MIXER0);
 		if (pipe == NULL) {
-			printk(KERN_INFO "%s: pipe_alloc failed\n", __func__);
-			mutex_unlock(&mfd->dma->ov_mutex);
+			printk(KERN_INFO "[LCD][DEBUG] %s: pipe_alloc failed\n", __func__);
 			return -EBUSY;
 		}
 		pipe->pipe_used++;
@@ -639,7 +617,7 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 		mdp4_overlay_panel_mode(pipe->mixer_num, MDP4_PANEL_DSI_VIDEO);
 		ret = mdp4_overlay_format2pipe(pipe);
 		if (ret < 0)
-			printk(KERN_INFO "%s: format2type failed\n", __func__);
+			printk(KERN_INFO "[LCD][DEBUG] %s: format2type failed\n", __func__);
 
 		pipe->ov_blt_addr = 0;
 		pipe->dma_blt_addr = 0;
@@ -654,6 +632,15 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 #endif
 
 	atomic_set(&vctrl->suspend, 0);
+
+	if (!(mfd->cont_splash_done)) {
+		mfd->cont_splash_done = 1;
+		mdp4_dsi_video_tg_off(vctrl);
+		mipi_dsi_controller_cfg(0);
+		/* Clks are enabled in probe.
+		   Disabling clocks now */
+		mdp_clk_ctrl(0);
+	}
 
 	pipe->src_height = fbi->var.yres;
 	pipe->src_width = fbi->var.xres;
@@ -767,8 +754,6 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 
 	mdp_histogram_ctrl_all(TRUE);
 	mdp4_overlay_dsi_video_start();
-	mutex_unlock(&mfd->dma->ov_mutex);
-
 	return ret;
 }
 
@@ -784,11 +769,42 @@ int mdp4_dsi_video_off(struct platform_device *pdev)
 	int mixer = 0;
 	int undx, need_wait = 0;
 
-	mfd = (struct msm_fb_data_type *)platform_get_drvdata(pdev);
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT_PANEL)
+	int retry_cnt = 0;
+#endif
 
-	mutex_lock(&mfd->dma->ov_mutex);
+	printk(KERN_INFO "[LCD][DEBUG] %s is started.. \n", __func__);
+
+	mfd = (struct msm_fb_data_type *)platform_get_drvdata(pdev);
 	vctrl = &vsync_ctrl_db[cndx];
 	pipe = vctrl->base_pipe;
+
+	mutex_lock(&mfd->dma->ov_mutex);
+
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT_PANEL)
+	do {
+		ret = mipi_lgit_lcd_off(pdev);
+
+		if (ret < 0) {
+			panel_next_off(pdev);
+			msleep(2);
+			panel_next_on(pdev);
+			msleep(5);
+			retry_cnt++;
+		}
+		else
+		{
+			// if upper routine is successed, need to initialize ret variable.
+			ret = 0;
+			break;
+		}
+	} while(retry_cnt < 10);
+	printk(KERN_INFO "[LCD][DEBUG] %s : mipi_lgit_lcd_off retry_cnt = %d\n", __func__, retry_cnt);
+#endif
 
 	mdp4_dsi_video_wait4vsync(cndx);
 
@@ -804,6 +820,11 @@ int mdp4_dsi_video_off(struct platform_device *pdev)
 	mdp_histogram_ctrl_all(FALSE);
 
 	dsi_video_enabled = 0;
+
+	if (vctrl->vsync_irq_enabled) {
+		vctrl->vsync_irq_enabled = 0;
+		vsync_irq_disable(INTR_PRIMARY_VSYNC, MDP_PRIM_VSYNC_TERM);
+	}
 
 	undx =  vctrl->update_ndx;
 	vp = &vctrl->vlist[undx];
@@ -858,8 +879,9 @@ int mdp4_dsi_video_off(struct platform_device *pdev)
 	/* mdp clock off */
 	mdp_clk_ctrl(0);
 	mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
-
 	mutex_unlock(&mfd->dma->ov_mutex);
+
+	printk(KERN_INFO "[LCD][DEBUG] %s is ended.. \n", __func__);
 
 	return ret;
 }
@@ -1016,6 +1038,7 @@ void mdp4_primary_vsync_dsi_video(void)
 	int cndx;
 	struct vsycn_ctrl *vctrl;
 
+
 	cndx = 0;
 	vctrl = &vsync_ctrl_db[cndx];
 	pr_debug("%s: cpu=%d\n", __func__, smp_processor_id());
@@ -1092,6 +1115,33 @@ void mdp4_overlay0_done_dsi_video(int cndx)
 	spin_unlock(&vctrl->spin_lock);
 }
 
+#if 0 //FIXME block to build error -- deleted dsi_pipe in PreCS
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_PT) ||\
+	defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT)
+	// fixed the underrun for 1920 * 1080 video play at the full hd lcd.
+static void mdp4_overlay_dsi_video_prefill(struct msm_fb_data_type *mfd) 
+{ 
+	unsigned long flag; 
+
+	if (dsi_pipe->ov_blt_addr) {
+		mdp4_overlay_dsi_video_dma_busy_wait(mfd); 
+		mdp4_dsi_video_blt_ov_update(dsi_pipe);
+		dsi_pipe->ov_cnt++; 
+		spin_lock_irqsave(&mdp_spin_lock, flag); 
+		outp32(MDP_INTR_CLEAR, INTR_OVERLAY0_DONE); 
+		mdp_intr_mask |= INTR_OVERLAY0_DONE; 
+		outp32(MDP_INTR_ENABLE, mdp_intr_mask); 
+		mdp_enable_irq(MDP_OVERLAY0_TERM); 
+		mfd->dma->busy = TRUE;
+		mb();	/* make sure all registers updated */ 
+		spin_unlock_irqrestore(&mdp_spin_lock, flag); 
+		outpdw(MDP_BASE + 0x0004, 0); /* kickoff overlay engine */ 
+		mdp4_stat.kickoff_ov0++; 
+		mb(); 
+		} 
+} 
+#endif
+#endif
 /*
  * make sure the MIPI_DSI_WRITEBACK_SIZE defined at boardfile
  * has enough space h * w * 3 * 2
@@ -1140,10 +1190,9 @@ static void mdp4_dsi_video_do_blt(struct msm_fb_data_type *mfd, int enable)
 	}
 	spin_unlock_irqrestore(&vctrl->spin_lock, flag);
 
-	if (vctrl->blt_ctrl == OVERLAY_BLT_SWITCH_TG_OFF) {
+	if (vctrl->blt_ctrl == BLT_SWITCH_TG_OFF) {
 		int tg_enabled;
 
-		pr_info("%s: blt enabled by switching TG off\n", __func__);
 		vctrl->blt_change = 0;
 		tg_enabled = inpdw(MDP_BASE + DSI_VIDEO_BASE) & 0x01;
 		if (tg_enabled) {
@@ -1166,11 +1215,11 @@ static void mdp4_dsi_video_do_blt(struct msm_fb_data_type *mfd, int enable)
 		}
 		if (tg_enabled) {
 			/*
-			 * need wait for more than 1 ms to
-			 * make sure lanes' fifo is empty and
-			 * lanes in stop state befroe reset
-			 * controller
-			 */
+			* need wait for more than 1 ms to
+			* make sure dsi lanes' fifo is empty and
+			* lanes in stop state befroe reset
+			* controller
+			*/
 			usleep(2000);
 			mipi_dsi_sw_reset();
 			MDP_OUTP(MDP_BASE + DSI_VIDEO_BASE, 1);
@@ -1242,3 +1291,4 @@ void mdp4_dsi_video_overlay(struct msm_fb_data_type *mfd)
 	mdp4_overlay_mdp_perf_upd(mfd, 0);
 	mutex_unlock(&mfd->dma->ov_mutex);
 }
+
