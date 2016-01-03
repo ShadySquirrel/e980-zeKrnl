@@ -19,7 +19,7 @@
 echo -e "#############################################################################################################"
 echo -e "###### zeKrnl building script"
 echo -e "######"
-echo -e "###### Version 2.4, 14/12/2015 - (Ultimate Madness)^4 (tm) edition."
+echo -e "###### Version 2.5.1, 03/01/2016 - (Ultimate Madness)^5 (tm) edition."
 echo -e "######"
 echo -e "###### Written by ShadySquirrel @ github (https://github.com/ShadySquirrel/) AKA ShadySquirrel @ XDA"
 echo -e "###### Big thanks to my Uni, for my lack of sleep and increased desire to do anything else but study."
@@ -107,6 +107,13 @@ ZIP_GEN=0
 # - Sign flashable zip
 ZIP_SIGN=0
 
+# Clean-up after build
+function clean_that_mess {
+	echo -e "++ Removing tmp/boot..."
+	rm -rf "$PWD/build_tools/tmp/boot"
+	echo -e "++ Removing tmp/zip_file..."
+	rm -rvf "$PWD/build_tools/tmp/zip_file"
+}
 
 # Function to generate boot image and flashable zip
 function generate_bootImg {
@@ -237,7 +244,7 @@ function generate_bootImg {
 						break;;
 					n)
 						echo -e "++ Cleaning up..."
-						rm -rvf "build_tools/tmp"
+						clean_that_mess
 						break;;
 				esac
 			done
@@ -356,7 +363,7 @@ function generate_flashableZip {
 		# Cleanup
 		echo -e " "
 		echo -e "++ Cleaning up..."
-		rm -rf "build_tools/tmp"
+		clean_that_mess
 		
 		# Inform
 		echo -e " "
@@ -367,6 +374,14 @@ function generate_flashableZip {
 	else
 		echo -e "+ ERROR: no boot.img found. Build failed or -i switch omited."
 	fi
+}
+
+# Convert time
+function time_display {
+ ((h=${1}/3600))
+ ((m=(${1}%3600)/60))
+ ((s=${1}%60))
+ printf "Build script took: %02d:%02d:%02d\n" $h $m $s
 }
 
 # Build function
@@ -452,7 +467,24 @@ function start_build_cmd {
 	echo -e " "
 	echo -e "++ Starting build #$(cat .build_no)"
 	echo -e " "	
-	time make -j$jobs;
+	
+	# Mark start...
+	build_start=$(date +%s)
+	# Run!
+	make -j$jobs;
+	status=$?;
+	# Mark end...
+	build_end=$(date +%s)
+	# Calculate!
+	build_time_dif=$(( $build_end - $build_start ))
+	echo -e " "
+	echo -e $(time_display $build_time_dif)
+	echo -e " "
+	case "$status" in
+		0) echo -e '+ Build successful.'; ;;
+		*) echo -e "+ Build failed; check output for errors and try again after fixing them"; exit; ;;
+	esac;
+	
 	
 	# Check if build was a success and if yes, ask user for boot.img generation
 	if [ -e "$KBUILD_OUTPUT/arch/$ARCH/boot/zImage" ]; then
