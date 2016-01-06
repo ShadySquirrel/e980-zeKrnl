@@ -29,15 +29,23 @@ extern uint32 mdp4_extn_disp;
 extern char *mmss_cc_base;	/* mutimedia sub system clock control */
 extern spinlock_t dsi_clk_lock;
 extern u32 mdp_max_clk;
-extern u32 dbg_force_ov0_blt;
-extern u32 dbg_force_ov1_blt;
 
 extern u64 mdp_max_bw;
+
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT) || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT_PANEL)
 extern u32 mdp_bw_ab_factor;
 extern u32 mdp_bw_ib_factor;
-extern u32 mdp_iommu_max_map_size;
+#define MDP4_BW_AB_DEFAULT_FACTOR (200)	/* 2.00 */
+#define MDP4_BW_IB_DEFAULT_FACTOR (210)	/* 2.10 */
+#else
+extern u32 mdp_bw_ab_factor;
+extern u32 mdp_bw_ib_factor;
 #define MDP4_BW_AB_DEFAULT_FACTOR (115)	/* 1.15 */
 #define MDP4_BW_IB_DEFAULT_FACTOR (150)	/* 1.5 */
+#endif
+
+extern u32 mdp_iommu_max_map_size;
+
 #define MDP_BUS_SCALE_AB_STEP (0x4000000)
 
 #define MDP4_OVERLAYPROC0_BASE	0x10000
@@ -55,7 +63,7 @@ extern u32 mdp_iommu_max_map_size;
 #define CS_CONTROLLER_0 0x0707ffff
 #define CS_CONTROLLER_1 0x03073f3f
 
-#if defined (CONFIG_MACH_APQ8064_GKATT) || defined(CONFIG_MACH_APQ8064_GKGLOBAL) //invert color
+#if defined (CONFIG_MACH_LGE) //invert color
 #define CSC_RESTORE
 #define CMAP_RESTORE
 #endif
@@ -68,6 +76,7 @@ extern unsigned char cmap_lut_changed;
 extern bool csc_dmap_changed;
 extern struct mdp_csc_cfg_data csc_cfg_backup_matrix;
 #endif
+
 
 typedef int (*cmd_fxn_t)(struct platform_device *pdev);
 
@@ -110,6 +119,12 @@ enum {
 #define MDP4_PANEL_DSI_VIDEO	BIT(4)
 #define MDP4_PANEL_DSI_CMD	BIT(5)
 #define MDP4_PANEL_WRITEBACK		BIT(6)
+
+enum {
+	OVERLAY_BLT_SWITCH_TG_ON,
+	OVERLAY_BLT_SWITCH_TG_OFF,
+	OVERLAY_BLT_ALWAYS_ON
+};
 
 enum {
 	OVERLAY_MODE_NONE,
@@ -179,7 +194,7 @@ enum {
 };
 
 enum {
-	MDP4_MIXER_STAGE_UNUSED,	/* pipe not used */
+	MDP4_MIXER_STAGE_UNUNSED,	/* pipe not used */
 	MDP4_MIXER_STAGE_BASE,
 	MDP4_MIXER_STAGE0,	/* zorder 0 */
 	MDP4_MIXER_STAGE1,	/* zorder 1 */
@@ -253,7 +268,11 @@ enum {
 #define MDP4_PIPE_PER_MIXER	2
 
 #define MDP4_MAX_PLANE		4
+#if defined(CONFIG_MACH_APQ8064_AWIFI) || defined(CONFIG_MACH_APQ8064_ALTEV)
+#define VSYNC_PERIOD		250
+#else
 #define VSYNC_PERIOD		16
+#endif
 
 #ifdef BLT_RGB565
 #define BLT_BPP 2
@@ -308,6 +327,9 @@ struct mdp4_overlay_pipe {
 	uint32 src_format;
 	uint32 src_width;	/* source img width */
 	uint32 src_height;	/* source img height */
+	uint32 prev_src_height;	/* source img height */
+	uint32 prev_src_width;	/* source img width */
+	uint32 frame_size;	/* TILE frame size */
 	uint32 is_3d;
 	uint32 src_width_3d;	/* source img width */
 	uint32 src_height_3d;	/* source img height */
@@ -378,7 +400,7 @@ struct mdp4_overlay_pipe {
 	uint32 ov_cnt;
 	uint32 dmap_cnt;
 	uint32 dmae_cnt;
-	uint32 blt_end;	/* used by mddi only */
+	uint32 blt_end;
 	uint32 blt_ov_koff;
 	uint32 blt_ov_done;
 	uint32 blt_dmap_koff;
@@ -389,11 +411,11 @@ struct mdp4_overlay_pipe {
 	uint32 luma_align_size;
 	struct mdp_overlay_pp_params pp_cfg;
 	struct mdp_overlay req_data;
-        struct completion comp;
-        struct completion dmas_comp;
-        struct mdp4_iommu_pipe_info iommu;
+	struct completion comp;
+	struct completion dmas_comp;
+	struct mdp4_iommu_pipe_info iommu;
 
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT)
+#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT) || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT)
 	uint32 ext_flag;
 	struct msm_fb_data_type *mfd;
 #endif
@@ -450,6 +472,15 @@ struct mdp4_statistic {
 	ulong err_stage;
 	ulong err_play;
 	ulong err_underflow;
+
+#ifdef CONFIG_LGE_FPS_CONTROL
+	char enable_skip_vsync;
+	ulong skip_value;
+	ulong weight;
+	ulong bucket;
+	ulong skip_count;
+	bool skip_first;
+#endif
 };
 
 struct vsync_update {
@@ -507,6 +538,8 @@ void mdp4_dmae_done_dtv(void);
 void mdp4_dtv_wait4vsync(int cndx);
 void mdp4_dtv_vsync_ctrl(struct fb_info *info, int enable);
 void mdp4_dtv_base_swap(int cndx, struct mdp4_overlay_pipe *pipe);
+void mdp4_dtv_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe);
+int mdp4_dtv_pipe_commit(int cndx, int wait);
 #else
 static inline void mdp4_overlay_dtv_start(void)
 {
@@ -553,9 +586,17 @@ static inline void mdp4_dtv_overlay_blt_stop(struct msm_fb_data_type *mfd)
 {
 	return;
 }
-static inline void mdp4_dtv_base_swap(struct mdp4_overlay_pipe *pipe)
+static inline void mdp4_dtv_base_swap(int cndx, struct mdp4_overlay_pipe *pipe)
 {
 	/* empty */
+}
+static inline void mdp4_dtv_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe)
+{
+	/* empty */
+}
+static inline int mdp4_dtv_pipe_commit(int cndx, int wait)
+{
+	return 0;
 }
 #endif /* CONFIG_FB_MSM_DTV */
 
@@ -579,8 +620,10 @@ void mdp4_overlay0_done_dsi_video(int cndx);
 void mdp4_overlay0_done_dsi_cmd(int cndx);
 void mdp4_primary_rdptr(void);
 void mdp4_dsi_cmd_overlay(struct msm_fb_data_type *mfd);
+int mdp4_overlay_commit(struct fb_info *info);
+int mdp4_dsi_video_pipe_commit(int cndx, int wait);
+int mdp4_dsi_cmd_pipe_commit(int cndx, int wait);
 int mdp4_lcdc_pipe_commit(int cndx, int wait);
-int mdp4_dtv_pipe_commit(int cndx, int wait);
 int mdp4_dsi_cmd_update_cnt(int cndx);
 void mdp4_dsi_rdptr_init(int cndx);
 void mdp4_dsi_vsync_init(int cndx);
@@ -618,15 +661,12 @@ int mdp4_overlay_unset_mixer(int mixer);
 int mdp4_overlay_play_wait(struct fb_info *info,
 	struct msmfb_overlay_data *req);
 int mdp4_overlay_play(struct fb_info *info, struct msmfb_overlay_data *req);
-int mdp4_overlay_commit(struct fb_info *info);
-void mdp4_overlay_commit_finish(struct fb_info *info);
 struct mdp4_overlay_pipe *mdp4_overlay_pipe_alloc(int ptype, int mixer);
 void mdp4_overlay_dma_commit(int mixer);
 void mdp4_overlay_vsync_commit(struct mdp4_overlay_pipe *pipe);
 void mdp4_mixer_stage_commit(int mixer);
 void mdp4_dsi_cmd_do_update(int cndx, struct mdp4_overlay_pipe *pipe);
 void mdp4_lcdc_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe);
-void mdp4_dtv_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe);
 void mdp4_overlay_pipe_free(struct mdp4_overlay_pipe *pipe, int all);
 void mdp4_overlay_dmap_cfg(struct msm_fb_data_type *mfd, int lcdc);
 void mdp4_overlay_dmap_xy(struct mdp4_overlay_pipe *pipe);
@@ -804,6 +844,7 @@ int mdp4_dsi_cmd_on(struct platform_device *pdev);
 int mdp4_dsi_cmd_off(struct platform_device *pdev);
 int mdp4_dsi_video_off(struct platform_device *pdev);
 int mdp4_dsi_video_on(struct platform_device *pdev);
+int mdp4_dsi_video_splash_done(void);
 void mdp4_primary_vsync_dsi_video(void);
 void mdp4_dsi_cmd_base_swap(int cndx, struct mdp4_overlay_pipe *pipe);
 void mdp4_dsi_cmd_wait4vsync(int cndx);
@@ -811,13 +852,12 @@ void mdp4_dsi_video_wait4vsync(int cndx);
 void mdp4_mixer_reset(int mixer);
 void mdp4_dsi_cmd_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe);
 void mdp4_dsi_video_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe);
-int mdp4_dsi_video_pipe_commit(int cndx, int wait, u32 *release_busy);
-int mdp4_dsi_cmd_pipe_commit(int cndx, int wait, u32 *release_busy);
 void mdp4_dsi_cmd_vsync_ctrl(struct fb_info *info, int enable);
 void mdp4_dsi_video_vsync_ctrl(struct fb_info *info, int enable);
-#if defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT) \
-	|| defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT) \
-       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT_PANEL)
+#if defined(CONFIG_FB_MSM_MIPI_DSI_LGIT) || defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_HD)\
+    || defined(CONFIG_FB_MSM_MIPI_DSI_LGIT_FHD) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) \
+       || defined(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT)
 void mdp4_overlay_dsi_video_start(void);
 #endif
 
@@ -868,14 +908,6 @@ static inline void mdp4_dsi_video_pipe_queue(int cndx,
 			struct mdp4_overlay_pipe *pipe)
 {
 }
-static inline int mdp4_dsi_video_pipe_commit(int cndx, int wait)
-{
-	return 0;
-}
-static inline int mdp4_dsi_cmd_pipe_commit(int cndx, int wait)
-{
-	return 0;
-}
 static inline void mdp4_dsi_cmd_vsync_ctrl(struct fb_info *info,
 				int enable)
 {
@@ -884,9 +916,17 @@ static inline void mdp4_dsi_video_vsync_ctrl(struct fb_info *info,
 				int enable)
 {
 }
+
 static inline void mdp4_overlay_dsi_video_start(void)
 {
 	/* empty */
+}
+
+static int mdp4_dsi_video_splash_done(void)
+{
+#if defined(CONFIG_MACH_APQ8064_AWIFI) || defined(CONFIG_MACH_APQ8064_ALTEV)
+	return 0;
+#endif	
 }
 #endif /* CONFIG_FB_MSM_MIPI_DSI */
 
@@ -938,6 +978,7 @@ int mdp4_writeback_queue_buffer(struct fb_info *info,
 void mdp4_writeback_dma_stop(struct msm_fb_data_type *mfd);
 int mdp4_writeback_init(struct fb_info *info);
 int mdp4_writeback_terminate(struct fb_info *info);
+int mdp4_writeback_set_mirroring_hint(struct fb_info *info, int hint);
 
 uint32_t mdp_block2base(uint32_t block);
 int mdp_hist_lut_config(struct mdp_hist_lut_data *data);

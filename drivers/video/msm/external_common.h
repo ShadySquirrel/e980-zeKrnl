@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -60,8 +60,10 @@ struct hdmi_disp_mode_list_type {
 
 struct external_common_state_type {
 	boolean hpd_state;
+	boolean pre_suspend_hpd_state;
 	struct kobject *uevent_kobj;
 	uint32 video_resolution;
+	boolean default_res_supported;
 	struct device *dev;
 	struct switch_dev sdev;
 	struct switch_dev audio_sdev;
@@ -113,12 +115,10 @@ const struct msm_hdmi_mode_timing_info *hdmi_mhl_get_supported_mode(
 	uint32 mode);
 void hdmi_common_init_panel_info(struct msm_panel_info *pinfo);
 
-ssize_t video_3d_format_2string(uint32 format, char *buf);
+ssize_t video_3d_format_2string(uint32 format, char *buf, u32 size);
 #endif
 
 int external_common_state_create(struct platform_device *pdev);
 void external_common_state_remove(void);
-#ifdef CONFIG_SLIMPORT_ANX7808
-bool slimport_is_vga_mode(void);
-#endif 
+
 #endif /* __EXTERNAL_COMMON_H__ */

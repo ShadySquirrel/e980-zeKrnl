@@ -187,6 +187,14 @@ config FB_MSM_MIPI_DSI_LGIT_FHD
 	bool
 	select FB_MSM_MIPI_DSI
 	default n
+config FB_MSM_MIPI_DSI_LGIT_WUXGA
+	bool
+	select FB_MSM_MIPI_DSI
+	default n
+config FB_MSM_MIPI_DSI_LGIT_HD
+	bool
+	select FB_MSM_MIPI_DSI
+	default n
 config FB_MSM_MIPI_DSI_HITACHI
 	bool
 	select FB_MSM_MIPI_DSI
@@ -221,6 +229,10 @@ config FB_MSM_MIPI_DSI_ORISE
         default n
 
 config FB_MSM_MIPI_DSI_NT35516
+	bool
+	select FB_MSM_MIPI_DSI
+
+config FB_MSM_MIPI_DSI_NT35590
 	bool
 	select FB_MSM_MIPI_DSI
 
@@ -317,17 +329,7 @@ config FB_MSM_LCDC_WXGA
 
 config FB_MSM_MIPI_LGIT_VIDEO_HD_PT
 	bool
-	select FB_MSM_MIPI_DSI_LGIT
-	default n
-
-config FB_MSM_MIPI_LGIT_CMD_WVGA_PT
-	bool
-	select FB_MSM_MIPI_DSI_LGIT
-	default n
-
-config FB_MSM_MIPI_LGIT_VIDEO_WVGA_PT
-	bool
-	select FB_MSM_MIPI_DSI_LGIT
+	select FB_MSM_MIPI_DSI_LGIT_HD
 	default n
 
 config FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT
@@ -347,12 +349,17 @@ config FB_MSM_MIPI_HITACHI_VIDEO_HD_PT
 	select FB_MSM_MIPI_DSI_HITACHI
 	default n
 
-config FB_MSM_LVDS_CHIMEI_WXGA
+config FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT
 	bool
-	select FB_MSM_LVDS
+	select FB_MSM_MIPI_DSI_LGIT_WUXGA
 	default n
 
-config FB_MSM_LVDS_FRC_FHD
+config FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT
+	bool
+	select FB_MSM_MIPI_DSI_LGIT_WUXGA
+	default n
+
+config FB_MSM_LVDS_CHIMEI_WXGA
 	bool
 	select FB_MSM_LVDS
 	default n
@@ -422,6 +429,15 @@ config FB_MSM_MIPI_NT35516_CMD_QHD_PT
         select FB_MSM_MIPI_DSI_NT35516
         default n
 
+config FB_MSM_MIPI_NT35590_CMD_720P_PT
+        bool
+        select FB_MSM_MIPI_DSI_NT35590
+        default n
+
+config FB_MSM_MIPI_NT35590_VIDEO_720P_PT
+        bool
+        select FB_MSM_MIPI_DSI_NT35590
+        default n
 
 config FB_MSM_MIPI_CHIMEI_WXGA
 	bool "LVDS Chimei WXGA Panel using Toshiba MIPI DSI-to-LVDS bridge."
@@ -599,6 +615,8 @@ config FB_MSM_MIPI_PANEL_DETECT
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
 	select FB_MSM_MIPI_NT35516_VIDEO_QHD_PT
 	select FB_MSM_MIPI_NT35516_CMD_QHD_PT
+	select FB_MSM_MIPI_NT35590_CMD_720P_PT
+	select FB_MSM_MIPI_NT35590_VIDEO_720P_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
 	select FB_MSM_MIPI_CHIMEI_WXGA
 	select FB_MSM_MIPI_CHIMEI_WUXGA
@@ -639,6 +657,8 @@ config FB_MSM_LCDC_MIPI_PANEL_AUTO_DETECT
 	select FB_MSM_MIPI_NT35510_CMD_WVGA_PT
 	select FB_MSM_MIPI_NT35516_VIDEO_QHD_PT
 	select FM_MSM_MIPI_NT35516_CMD_QHD_PT
+	select FM_MSM_MIPI_NT35590_CMD_720P_PT
+	select FM_MSM_MIPI_NT35590_VIDEO_720P_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
 	---help---
 	  Support for LCDC + MIPI panel auto detect
@@ -647,6 +667,7 @@ config FB_MSM_LVDS_MIPI_PANEL_DETECT
 	bool "LVDS + MIPI Panel Auto Detect"
 	select FB_MSM_LVDS_CHIMEI_WXGA
 	select FB_MSM_LVDS_FRC_FHD
+	select FB_MSM_MIPI_NT35590_VIDEO_720P_PT
 	select FB_MSM_MIPI_TOSHIBA_VIDEO_WVGA_PT
 	select FB_MSM_MIPI_TOSHIBA_VIDEO_WSVGA_PT
 	select FB_MSM_MIPI_TOSHIBA_VIDEO_WUXGA
@@ -657,6 +678,7 @@ config FB_MSM_LVDS_MIPI_PANEL_DETECT
 	select FB_MSM_MIPI_NOVATEK_CMD_QHD_PT
 	select FB_MSM_MIPI_NT35510_VIDEO_WVGA_PT
 	select FB_MSM_MIPI_NT35510_CMD_WVGA_PT
+	select FB_MSM_MIPI_NT35590_CMD_720P_PT
 	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
@@ -704,8 +726,15 @@ config FB_MSM_MIPI_LGIT_VIDEO_FHD_PT_PANEL
 config FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT_PANEL
 	bool "MIPI LG Display FHD Inverse PT Panel"
 	select FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT
+config FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT_PANEL
+	bool "MIPI LG Display WUXGA PT Panel"
+	select FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT
+
+config FB_MSM_MIPI_LGIT_VIDEO_HD_PT_PANEL
+	bool "MIPI LG Display HD PT Panel"
+	select FB_MSM_MIPI_LGIT_VIDEO_HD_PT
 config FB_MSM_MIPI_HITACHI_VIDEO_HD_PT_PANEL
-	bool "MIPI LG Display WXGA PT Panel"
+	bool "MIPI Hitachi HD PT Panel"
 	select FB_MSM_MIPI_HITACHI_VIDEO_HD_PT
 
 config FB_MSM_MIPI_TOSHIBA_VIDEO_WVGA_PT_PANEL
@@ -772,6 +801,24 @@ config FB_MSM_MIPI_NT35516_CMD_QHD_PT_PANEL
         bool "MIPI NT35516 Command qHD PT Panel"
         select FB_MSM_MIPI_NT35516_CMD_QHD_PT
 
+config FB_MSM_MIPI_NT35590_CMD_720P_PT_PANEL
+        bool "MIPI NT35590 Command 720p PT Panel"
+        select FB_MSM_MIPI_NT35590_CMD_720P_PT
+	---help---
+	Support for Truly NT35590 panel. This
+	panel supports MIPI DSI interface in
+	Command mode. The panel resolution is
+	720p (720x1280).
+
+config FB_MSM_MIPI_NT35590_VIDEO_720P_PT_PANEL
+        bool "MIPI NT35590 Video 720p PT Panel"
+        select FB_MSM_MIPI_NT35590_VIDEO_720P_PT
+	---help---
+	Support for Truly NT35590 panel. This
+	panel supports MIPI DSI interface in
+	Video mode. The panel resolution is
+	720p (720x1280).
+
 config FB_MSM_MIPI_SIMULATOR_VIDEO_PANEL
 	bool "MIPI Simulator Video Panel"
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
@@ -793,6 +840,22 @@ config FB_MSM_PANEL_NONE
 	---help---
 	  This will disable LCD panel
 endchoice
+
+config LGIT_VIDEO_HD_CABC
+	bool "Content Adaptive Backlight Control on LGIT HD Panel"
+	default y
+	depends on FB_MSM_MIPI_LGIT_VIDEO_HD_PT_PANEL
+	help
+	  Enable CABC(Content Apaptive Backlight Control) on LGIT Panel
+	  to reduce power consumption
+
+config LGIT_VIDEO_WXGA_CABC
+	bool "Content Adaptive Backlight Control on LGIT WXGA Panel"
+	default y
+	depends on FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT_PANEL
+	help
+	  Enable CABC(Content Apaptive Backlight Control) on LGIT Panel
+	  to reduce power consumption
 
 choice
 	prompt "Secondary LCD Panel"
@@ -837,6 +900,13 @@ config FB_MSM_HDMI_COMMON
 	bool
 	default n
 
+config LGE_FPS_CONTROL
+	bool "Enable FPS control"
+	default n
+	depends on MACH_LGE
+	help
+	  Enable FPS control
+
 config FB_MSM_HDMI_3D
 	bool
 	default n
@@ -854,7 +924,7 @@ config FB_MSM_HDMI_ADV7520_PANEL
 config FB_MSM_HDMI_ADV7520_PANEL_HDCP_SUPPORT
         depends on FB_MSM_HDMI_ADV7520_PANEL
         bool "Use HDCP mode"
-        default n
+        default y
         ---help---
           Support for HDCP mode for ADV7520 HDMI 720p Panel
           Choose to enable HDCP
@@ -1010,9 +1080,3 @@ if FB_MSM_MDSS
 	source "drivers/video/msm/mdss/Kconfig"
 endif
 endif
-
-config LGE_HDMI_NO_SWITCH_STATE_SET
-    bool "STATE SET"
-    default n
-    ---help---
-       not set HDMI switch state node

@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -38,11 +38,12 @@ uint32 hdmi_inp(uint32 offset);
  * Ref. HDMI 1.4a
  * Supplement-1 CEC Section 6, 7
  */
+#define CEC_MAX_OPERAND_SIZE 15
 struct hdmi_msm_cec_msg {
 	uint8 sender_id;
 	uint8 recvr_id;
 	uint8 opcode;
-	uint8 operand[15];
+	uint8 operand[CEC_MAX_OPERAND_SIZE];
 	uint8 frame_size;
 	uint8 retransmit;
 };
@@ -132,43 +133,32 @@ void hdmi_msm_cec_one_touch_play(void);
 void hdmi_msm_cec_msg_send(struct hdmi_msm_cec_msg *msg);
 #endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT */
 
-/* LGE_CHANGE
- * not used api
- * (feature CONFIG_FB_MSM_HDMI_MHL_8334 is disabled)
- * 2012-09-07, chaeuk.lee@lge.com
- */
-#ifdef CONFIG_FB_MSM_HDMI_MHL_8334
-void mhl_connect_api(boolean on);
-#endif /* CONFIG_FB_MSM_HDMI_MHL_8334 */
-
-/* LGE_CHANGE
- * default video resolution for each target
- * 2012-09-22, chaeuk.lee@lge.com
+/*           
+                                           
+                                 
  */
 #ifdef CONFIG_MACH_LGE
 
-#ifdef CONFIG_SII8334_MHL_TX
-boolean hdmi_msm_is_dvi_mode(void);
-#endif
-
 /* FULL HD (MHL) */
 #if defined(CONFIG_MACH_APQ8064_GVDCM) || \
-	defined(CONFIG_MACH_APQ8064_GVKDDI)
+	 defined(CONFIG_MACH_APQ8064_GVKDDI)
 #define LGE_DEFAULT_HDMI_VIDEO_RESOLUTION HDMI_VFRMT_1920x1080p30_16_9
 /* FULL HD (SLIMPORT) */
 #elif defined(CONFIG_MACH_APQ8064_GKKT) || \
-	defined(CONFIG_MACH_APQ8064_GKSK) || \
-	defined(CONFIG_MACH_APQ8064_GKU) || \
-	defined(CONFIG_MACH_APQ8064_GKATT) || \
-	defined(CONFIG_MACH_APQ8064_GKGLOBAL) || \
-	defined(CONFIG_MACH_APQ8064_GVKT)
+		defined(CONFIG_MACH_APQ8064_GKSK) || \
+		defined(CONFIG_MACH_APQ8064_GKU) || \
+		defined(CONFIG_MACH_APQ8064_OMEGAR) || \
+		defined(CONFIG_MACH_APQ8064_OMEGA) || \
+		defined(CONFIG_MACH_APQ8064_GKATT) || \
+		defined(CONFIG_MACH_APQ8064_GKGLOBAL) || \
+		defined(CONFIG_MACH_APQ8064_GVKT) || \
+		defined(CONFIG_MACH_APQ8064_AWIFI) || defined(CONFIG_MACH_APQ8064_ALTEV)
 #define LGE_DEFAULT_HDMI_VIDEO_RESOLUTION HDMI_VFRMT_1920x1080p60_16_9
 /* HD (Default) */
 #else
-#define LGE_DEFAULT_HDMI_VIDEO_RESOLUTION HDMI_VFRMT_1920x1080p30_16_9
-//#define LGE_DEFAULT_HDMI_VIDEO_RESOLUTION HDMI_VFRMT_1280x720p60_16_9
+#define LGE_DEFAULT_HDMI_VIDEO_RESOLUTION HDMI_VFRMT_1280x720p60_16_9
 #endif
 
-#endif /* CONFIG_MACH_LGE */
+#endif /*                 */
 
 #endif /* __HDMI_MSM_H__ */

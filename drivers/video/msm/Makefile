@@ -77,6 +77,8 @@ obj-$(CONFIG_FB_MSM_MIPI_DSI) += msm_mipi.o
 # MIPI manufacture
 obj-$(CONFIG_FB_MSM_MIPI_DSI_LGIT) += mipi_lgit.o
 obj-$(CONFIG_FB_MSM_MIPI_DSI_LGIT_FHD) += mipi_lgit_fhd.o
+obj-$(CONFIG_FB_MSM_MIPI_DSI_LGIT_HD) += mipi_lgit_hd.o
+obj-$(CONFIG_FB_MSM_MIPI_DSI_LGIT_WUXGA) += mipi_lgit_wuxga.o
 obj-$(CONFIG_FB_MSM_MIPI_DSI_HITACHI) += mipi_hitachi.o
 obj-$(CONFIG_FB_MSM_MIPI_DSI_TOSHIBA) += mipi_toshiba.o
 obj-$(CONFIG_FB_MSM_MIPI_DSI_NOVATEK) += mipi_novatek.o
@@ -85,6 +87,7 @@ obj-$(CONFIG_FB_MSM_MIPI_DSI_RENESAS) += mipi_renesas.o
 obj-$(CONFIG_FB_MSM_MIPI_DSI_TRULY) += mipi_truly.o
 obj-$(CONFIG_FB_MSM_MIPI_DSI_NT35510) += mipi_NT35510.o
 obj-$(CONFIG_FB_MSM_MIPI_DSI_NT35516) += mipi_truly_tft540960_1_e.o
+obj-$(CONFIG_FB_MSM_MIPI_DSI_NT35590) += mipi_NT35590.o
 obj-$(CONFIG_FB_MSM_MIPI_DSI_SIMULATOR) += mipi_simulator.o
 
 # MIPI Bridge
@@ -128,6 +131,7 @@ obj-y += mipi_orise_video_720p_pt.o mipi_orise_cmd_720p_pt.o
 obj-y += mipi_renesas_video_fwvga_pt.o mipi_renesas_cmd_fwvga_pt.o
 obj-y += mipi_NT35510_video_wvga_pt.o mipi_NT35510_cmd_wvga_pt.o
 obj-y += mipi_truly_tft540960_1_e_video_qhd_pt.o mipi_truly_tft540960_1_e_cmd_qhd_pt.o
+obj-y += mipi_NT35590_cmd_720p_pt.o mipi_NT35590_video_720p_pt.o
 obj-y += mipi_chimei_wxga_pt.o
 obj-y += mipi_chimei_wuxga.o
 obj-y += mipi_truly_video_wvga_pt.o
@@ -135,6 +139,9 @@ else
 obj-$(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT) += mipi_lgit_video_wxga_pt.o
 obj-$(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_PT) += mipi_lgit_video_fhd_pt.o
 obj-$(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT) += mipi_lgit_video_fhd_pt.o
+obj-$(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_HD_PT) += mipi_lgit_video_hd_pt.o
+obj-$(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT) += mipi_lgit_video_wuxga_pt.o
+obj-$(CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_INVERSE_PT) += mipi_lgit_video_wuxga_pt.o
 obj-$(CONFIG_FB_MSM_MIPI_HITACHI_VIDEO_HD_PT) += mipi_hitachi_video_hd_pt.o
 obj-$(CONFIG_FB_MSM_MIPI_TOSHIBA_VIDEO_WVGA_PT) += mipi_toshiba_video_wvga_pt.o
 obj-$(CONFIG_FB_MSM_MIPI_TOSHIBA_VIDEO_WSVGA_PT) += mipi_toshiba_video_wsvga_pt.o
@@ -151,6 +158,8 @@ obj-$(CONFIG_FB_MSM_MIPI_NT35510_CMD_WVGA_PT) += mipi_NT35510_cmd_wvga_pt.o
 obj-$(CONFIG_FB_MSM_MIPI_NT35510_VIDEO_WVGA_PT) += mipi_NT35510_video_wvga_pt.o
 obj-$(CONFIG_FB_MSM_MIPI_NT35516_CMD_QHD_PT) += mipi_truly_tft540960_1_e_cmd_qhd_pt.o
 obj-$(CONFIG_FB_MSM_MIPI_NT35516_VIDEO_QHD_PT) += mipi_truly_tft540960_1_e_video_qhd_pt.o
+obj-$(CONFIG_FB_MSM_MIPI_NT35590_CMD_720P_PT) += mipi_NT35590_cmd_720p_pt.o
+obj-$(CONFIG_FB_MSM_MIPI_NT35590_VIDEO_720P_PT) += mipi_NT35590_video_720p_pt.o
 obj-$(CONFIG_FB_MSM_MIPI_SIMULATOR_VIDEO) += mipi_simulator_video.o
 obj-$(CONFIG_FB_MSM_MIPI_CHIMEI_WXGA) += mipi_chimei_wxga_pt.o
 obj-$(CONFIG_FB_MSM_MIPI_CHIMEI_WUXGA) += mipi_chimei_wuxga.o

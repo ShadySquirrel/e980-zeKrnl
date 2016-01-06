@@ -44,14 +44,13 @@
 #endif
 #include "mipi_dsi.h"
 
-#if defined (CONFIG_LGE_QC_LCDC_LUT)
-#include "lge_qlut.h"
-#endif
-
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #undef CONFIG_HAS_EARLYSUSPEND
 #endif
 
+#if defined (CONFIG_LGE_QC_LCDC_LUT)
+#include "lge_qlut.h"
+#endif
 uint32 mdp4_extn_disp;
 u32 mdp_iommu_max_map_size;
 static struct clk *mdp_clk;
@@ -309,7 +308,6 @@ static int mdp_hist_lut_init(void)
 
 	if (mdp_pp_initialized)
 		return -EEXIST;
-
 	for (i = 0; i < MDP_HIST_LUT_SIZE; i++)
 		last_lut[i] = i | (i << 8) | (i << 16);
 
@@ -559,8 +557,8 @@ extern uint32 p_lg_qc_lcdc_lut[];
 extern int g_kcal_r;
 extern int g_kcal_g;
 extern int g_kcal_b;
-#endif /* CONFIG_LGE_KCAL_QLUT */
-#endif /* CONFIG_LGE_QC_LCDC_LUT */
+#endif /*                      */
+#endif /*                        */
 
 static int mdp_lut_hw_update(struct fb_cmap *cmap)
 {
@@ -572,6 +570,11 @@ static int mdp_lut_hw_update(struct fb_cmap *cmap)
 	c[1] = cmap->blue;
 	c[2] = cmap->red;
 
+	if (cmap->start > MDP_HIST_LUT_SIZE || cmap->len > MDP_HIST_LUT_SIZE ||
+			(cmap->start + cmap->len > MDP_HIST_LUT_SIZE)) {
+		pr_err("mdp_lut_hw_update invalid arguments\n");
+		return -EINVAL;
+	}
 	for (i = 0; i < cmap->len; i++) {
 #ifdef CONFIG_LGE_QC_LCDC_LUT
 		if (g_qlut_change_by_kernel) {
@@ -590,9 +593,9 @@ static int mdp_lut_hw_update(struct fb_cmap *cmap)
 		    copy_from_user(&b, cmap->blue++, sizeof(b)))
 			return -EFAULT;
 
-#ifdef CMAP_RESTORE  //invert color
-		if (cmap_lut_changed)
-		{
+
+#ifdef CMAP_RESTORE  /*invert color*/
+		if (cmap_lut_changed) {
 			r = ~(r & 0xff);
 			g = ~(g & 0xff);
 			b = ~(b & 0xff);
@@ -623,13 +626,15 @@ static void mdp_lut_status_restore(void)
 	if (mdp_lut_resume_needed) {
 		spin_lock_irqsave(&mdp_lut_push_lock, flags);
 		mdp_lut_push = 1;
-		spin_unlock_irqrestore(&mdp_lut_push_lock, flags);
+		spin_unlock_irqrestore(&mdp_lut_push_lock,
+					flags);
 	}
 }
 
 static void mdp_lut_status_backup(void)
 {
 	uint32_t status = inpdw(MDP_BASE + 0x90070) & 0x7;
+
 	if (status)
 		mdp_lut_resume_needed = 1;
 	else
@@ -674,14 +679,8 @@ static int mdp_lut_update_lcdc(struct fb_info *info, struct fb_cmap *cmap)
 		return ret;
 	}
 
-       /*
-        * 2012.11.09, hyuk.myeong@lge.com
-        * this code doesn't work everytime
-	 * out = inpdw(MDP_BASE + 0x90070);
-        */
 	/*mask off non LUT select bits*/
 	out = inpdw(MDP_BASE + 0x90070) & ~((0x1 << 10) | 0x7);
-
 	MDP_OUTP(MDP_BASE + 0x90070, (mdp_lut_i << 10) | 0x7 | out);
 	mdp_clk_ctrl(0);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
@@ -689,6 +688,43 @@ static int mdp_lut_update_lcdc(struct fb_info *info, struct fb_cmap *cmap)
 
 	return 0;
 }
+
+#ifdef CONFIG_UPDATE_LCDC_LUT
+int mdp_preset_lut_update_lcdc(struct fb_cmap *cmap, uint32_t *internal_lut)
+{
+	uint32_t out;
+	int i;
+	u16 r, g, b;
+
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+	mdp_clk_ctrl(1);
+
+	for (i = 0; i < cmap->len; i++) {
+		r = lut2r(internal_lut[i]);
+		g = lut2g(internal_lut[i]);
+		b = lut2b(internal_lut[i]);
+#ifdef CONFIG_LCD_KCAL
+		r = scaled_by_kcal(r, *(cmap->red));
+		g = scaled_by_kcal(g, *(cmap->green));
+		b = scaled_by_kcal(b, *(cmap->blue));
+#endif
+		MDP_OUTP(MDP_BASE + 0x94800 +
+			(0x400*mdp_lut_i) + cmap->start*4 + i*4,
+				((g & 0xff) |
+				 ((b & 0xff) << 8) |
+				 ((r & 0xff) << 16)));
+	}
+
+	/*mask off non LUT select bits*/
+	out = inpdw(MDP_BASE + 0x90070) & ~((0x1 << 10) | 0x7);
+	MDP_OUTP(MDP_BASE + 0x90070, (mdp_lut_i << 10) | 0x7 | out);
+	mdp_clk_ctrl(0);
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+	mdp_lut_i = (mdp_lut_i + 1)%2;
+
+	return 0;
+}
+#endif
 
 static void mdp_lut_enable(void)
 {
@@ -1479,7 +1515,7 @@ ssize_t mdp_dma_show_event(struct device *dev,
 
 	wait_for_completion(&vsync_cntrl.vsync_wait);
 	ret = snprintf(buf, PAGE_SIZE, "VSYNC=%llu",
-	ktime_to_ns(vsync_cntrl.vsync_time));
+			ktime_to_ns(vsync_cntrl.vsync_time));
 	buf[strlen(buf) + 1] = '\0';
 	return ret;
 }
@@ -1632,7 +1668,7 @@ void mdp_enable_irq(uint32 term)
 
 	spin_lock_irqsave(&mdp_lock, irq_flags);
 	if (mdp_irq_mask & term) {
-		printk(KERN_ERR "[LCD][DEBUG] %s: MDP IRQ term-0x%x is already set, mask=%x irq=%d\n",
+		printk(KERN_ERR "%s: MDP IRQ term-0x%x is already set, mask=%x irq=%d\n",
 				__func__, term, mdp_irq_mask, mdp_irq_enabled);
 	} else {
 		mdp_irq_mask |= term;
@@ -1653,7 +1689,7 @@ void mdp_disable_irq(uint32 term)
 
 	spin_lock_irqsave(&mdp_lock, irq_flags);
 	if (!(mdp_irq_mask & term)) {
-		printk(KERN_ERR "[LCD][DEBUG] %s: MDP IRQ term-0x%x is NOT set, mask=%x irq=%d\n",
+		printk(KERN_ERR "%s: MDP IRQ term-0x%x is NOT set, mask=%x irq=%d\n",
 				__func__, term, mdp_irq_mask, mdp_irq_enabled);
 	} else {
 		mdp_irq_mask &= ~term;
@@ -1669,7 +1705,7 @@ void mdp_disable_irq_nosync(uint32 term)
 {
 	spin_lock(&mdp_lock);
 	if (!(mdp_irq_mask & term)) {
-		printk(KERN_ERR "[LCD][DEBUG] %s: MDP IRQ term-0x%x is NOT set, mask=%x irq=%d\n",
+		printk(KERN_ERR "%s: MDP IRQ term-0x%x is NOT set, mask=%x irq=%d\n",
 				__func__, term, mdp_irq_mask, mdp_irq_enabled);
 	} else {
 		mdp_irq_mask &= ~term;
@@ -2375,7 +2411,7 @@ static int mdp_off(struct platform_device *pdev)
 	int ret = 0;
 	struct msm_fb_data_type *mfd = platform_get_drvdata(pdev);
 
-	pr_debug("%s:+\n", __func__);
+	pr_info("%s:+\n", __func__);
 	mdp_histogram_ctrl_all(FALSE);
 	atomic_set(&vsync_cntrl.suspend, 1);
 	atomic_set(&vsync_cntrl.vsync_resume, 0);
@@ -2383,7 +2419,6 @@ static int mdp_off(struct platform_device *pdev)
 
 	mdp_clk_ctrl(1);
 	mdp_lut_status_backup();
-
 	ret = panel_next_early_off(pdev);
 
 	if (mfd->panel.type == MIPI_CMD_PANEL)
@@ -2405,7 +2440,7 @@ static int mdp_off(struct platform_device *pdev)
 #ifdef CONFIG_MSM_BUS_SCALING
 	mdp_bus_scale_update_request(0, 0, 0, 0);
 #endif
-	pr_debug("%s:-\n", __func__);
+	pr_info("%s:-\n", __func__);
 	return ret;
 }
 
@@ -2423,10 +2458,6 @@ void mdp4_hw_init(void)
 
 static int mdp_bus_scale_restore_request(void);
 
-#if defined(CONFIG_MACH_APQ8064_MAKO) && defined(CONFIG_UPDATE_LCDC_LUT)
-extern int update_preset_lcdc_lut(void);
-#endif
-
 static int mdp_on(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2434,22 +2465,51 @@ static int mdp_on(struct platform_device *pdev)
 	int i;
 	mfd = platform_get_drvdata(pdev);
 
-	pr_debug("%s:+\n", __func__);
+	pr_info("%s:+\n", __func__);
 
+#if defined (CONFIG_MACH_APQ8064_AWIFI) || defined (CONFIG_MACH_APQ8064_GK_KR) || defined (CONFIG_MACH_APQ8064_ALTEV)
+	if (!(mfd->cont_splash_done)) {
+#if defined (CONFIG_MACH_APQ8064_GK_KR)
+		down(&mfd->sem);
+		mfd->bl_level = 0;
+		msm_fb_set_backlight(mfd, 0);
+		up(&mfd->sem);
+#else
+		if (mfd->panel.type == MIPI_VIDEO_PANEL)
+			mdp4_dsi_video_splash_done();
+#endif
 
+		/* Clks are enabled in probe.
+		Disabling clocks now */
+		mdp_clk_ctrl(0);
+#if !defined (CONFIG_MACH_APQ8064_GK_KR)
+		mfd->cont_splash_done = 1;
+#endif
+	}
+#endif
+  
 	if(mfd->index == 0)
 		mdp_iommu_max_map_size = mfd->max_map_size;
+
+#ifndef CONFIG_MACH_LGE
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+
+	ret = panel_next_on(pdev);
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+#endif
 
 	if (mdp_rev >= MDP_REV_40) {
 		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 		mdp_clk_ctrl(1);
 		mdp_bus_scale_restore_request();
 		mdp4_hw_init();
+
 		/* Initialize HistLUT to last LUT */
 		for (i = 0; i < MDP_HIST_LUT_SIZE; i++) {
 			MDP_OUTP(MDP_BASE + 0x94800 + i*4, last_lut[i]);
 			MDP_OUTP(MDP_BASE + 0x94C00 + i*4, last_lut[i]);
 		}
+
 		mdp_lut_status_restore();
 		outpdw(MDP_BASE + 0x0038, mdp4_display_intf);
 		if (mfd->panel.type == MIPI_CMD_PANEL) {
@@ -2471,25 +2531,22 @@ static int mdp_on(struct platform_device *pdev)
 	if (mdp_rev == MDP_REV_303 && mfd->panel.type == MIPI_CMD_PANEL) {
 
 		vsync_cntrl.dev = mfd->fbi->dev;
-		atomic_set(&vsync_cntrl.suspend, 0);
-		atomic_set(&vsync_cntrl.vsync_resume, 1);
+		atomic_set(&vsync_cntrl.suspend, 1);
 	}
 
+#ifdef CONFIG_MACH_LGE
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 
 	ret = panel_next_on(pdev);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+#endif
 
 	mdp_histogram_ctrl_all(TRUE);
-
 	if (ret == 0)
 		ret = panel_next_late_init(pdev);
 
-	pr_debug("%s:-\n", __func__);
+	pr_info("%s:-\n", __func__);
 
-#if defined(CONFIG_MACH_APQ8064_MAKO) && defined(CONFIG_UPDATE_LCDC_LUT)
-	update_preset_lcdc_lut();
-#endif
 	return ret;
 }
 
@@ -2707,7 +2764,7 @@ static int mdp_irq_clk_setup(struct platform_device *pdev,
 	ret = request_irq(mdp_irq, mdp_isr, IRQF_DISABLED, "MDP", 0);
 #endif
 	if (ret) {
-		printk(KERN_ERR "[LCD][DEBUG] mdp request_irq() failed!\n");
+		printk(KERN_ERR "mdp request_irq() failed!\n");
 		return ret;
 	}
 	disable_irq(mdp_irq);
@@ -2751,7 +2808,7 @@ static int mdp_irq_clk_setup(struct platform_device *pdev,
 	mdp_clk = clk_get(&pdev->dev, "core_clk");
 	if (IS_ERR(mdp_clk)) {
 		ret = PTR_ERR(mdp_clk);
-		printk(KERN_ERR "[LCD][DEBUG] can't get mdp_clk error:%d!\n", ret);
+		printk(KERN_ERR "can't get mdp_clk error:%d!\n", ret);
 		free_irq(mdp_irq, 0);
 		return ret;
 	}
@@ -2807,8 +2864,53 @@ static int mdp_irq_clk_setup(struct platform_device *pdev,
 		outpdw(MDP_BASE + 0x10004, 0x3);
 		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 	}
+
 	return 0;
 }
+#ifdef CONFIG_LGE_FPS_CONTROL
+static ssize_t fps_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+	ulong fps;
+
+	if (!count)
+		return -EINVAL;
+
+	fps = simple_strtoul(buf, NULL, 10);
+
+	if (fps == 0 || fps >= 60) {
+		mdp4_stat.enable_skip_vsync = 0;
+		mdp4_stat.skip_value = 0;
+		mdp4_stat.weight = 0;
+		mdp4_stat.bucket = 0;
+		mdp4_stat.skip_count = 0;
+		mdp4_stat.skip_first = false;
+		pr_info("Disable frame skip.\n");
+	} else {
+		mdp4_stat.enable_skip_vsync = 1;
+		mdp4_stat.skip_value = (60<<16)/fps;
+		mdp4_stat.weight = (1<<16);
+		mdp4_stat.bucket = 0;
+		mdp4_stat.skip_first = false;
+		pr_info("Enable frame skip: Set to %lu fps.\n", fps);
+	}
+
+	return count;
+}
+
+static ssize_t fps_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	int r = 0;
+	r = snprintf(buf, PAGE_SIZE, "enable_skip_vsync=%d\nweight=%lu\nskip_value=%lu\nbucket=%lu\nskip_count=%lu\n",
+		mdp4_stat.enable_skip_vsync,
+		mdp4_stat.weight,
+		mdp4_stat.skip_value,
+		mdp4_stat.bucket,
+		mdp4_stat.skip_count);
+	return r;
+}
+
+DEVICE_ATTR(fps, 0644, fps_show, fps_store);
+#endif
 
 static int mdp_probe(struct platform_device *pdev)
 {
@@ -2825,7 +2927,6 @@ static int mdp_probe(struct platform_device *pdev)
 #if defined(CONFIG_FB_MSM_MIPI_DSI) && defined(CONFIG_FB_MSM_MDP40)
 	struct mipi_panel_info *mipi;
 #endif
-	static int contSplash_update_done;
 
 	if ((pdev->id == 0) && (pdev->num_resources > 0)) {
 		mdp_init_pdev = pdev;
@@ -2869,7 +2970,7 @@ static int mdp_probe(struct platform_device *pdev)
 		if (!(mdp_pdata->cont_splash_enabled))
 			mdp4_hw_init();
 #else
-		mdp_hw_init(mdp_pdata->cont_splash_enabled);
+		mdp_hw_init();
 #endif
 
 #ifdef CONFIG_FB_MSM_OVERLAY
@@ -2902,21 +3003,6 @@ static int mdp_probe(struct platform_device *pdev)
 	mfd->mdp_rev = mdp_rev;
 	mfd->vsync_init = NULL;
 
-	if (mdp_pdata) {
-		if (mdp_pdata->cont_splash_enabled) {
-			mfd->cont_splash_done = 0;
-			if (!contSplash_update_done) {
-				if (mfd->panel.type == MIPI_VIDEO_PANEL ||
-				    mfd->panel.type == LCDC_PANEL)
-					mdp_pipe_ctrl(MDP_CMD_BLOCK,
-						MDP_BLOCK_POWER_ON, FALSE);
-				mdp_clk_ctrl(1);
-				contSplash_update_done = 1;
-			}
-		} else
-			mfd->cont_splash_done = 1;
-	}
-
 	mfd->ov0_wb_buf = MDP_ALLOC(sizeof(struct mdp_buf_type));
 	mfd->ov1_wb_buf = MDP_ALLOC(sizeof(struct mdp_buf_type));
 	memset((void *)mfd->ov0_wb_buf, 0, sizeof(struct mdp_buf_type));
@@ -2941,9 +3027,58 @@ static int mdp_probe(struct platform_device *pdev)
 	if (platform_device_add_data
 	    (msm_fb_dev, pdev->dev.platform_data,
 	     sizeof(struct msm_fb_panel_data))) {
-		printk(KERN_ERR "[LCD][DEBUG] mdp_probe: platform_device_add_data failed!\n");
+		printk(KERN_ERR "mdp_probe: platform_device_add_data failed!\n");
 		rc = -ENOMEM;
 		goto mdp_probe_err;
+	}
+
+	if (mdp_pdata) {
+#if defined (CONFIG_MACH_APQ8064_AWIFI) || defined (CONFIG_MACH_APQ8064_GK_KR) || defined (CONFIG_MACH_APQ8064_ALTEV)
+		if (mdp_pdata->cont_splash_enabled &&
+				 mfd->panel_info.pdest == DISPLAY_1) {
+			char *cp;
+			uint32 bpp = 3;
+			/*read panel wxh and calculate splash screen
+			  size*/
+			mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+
+			mdp_clk_ctrl(1);
+
+			mdp_pdata->splash_screen_size =
+				inpdw(MDP_BASE + 0x90004);
+			mdp_pdata->splash_screen_size =
+				(((mdp_pdata->splash_screen_size >> 16) &
+				  0x00000FFF) * (
+					  mdp_pdata->splash_screen_size &
+					  0x00000FFF)) * bpp;
+
+			mdp_pdata->splash_screen_addr =
+				inpdw(MDP_BASE + 0x90008);
+
+			mfd->copy_splash_buf = dma_alloc_coherent(NULL,
+					mdp_pdata->splash_screen_size,
+					(dma_addr_t *) &(mfd->copy_splash_phys),
+					GFP_KERNEL);
+
+			if (!mfd->copy_splash_buf) {
+				pr_err("DMA ALLOC FAILED for SPLASH\n");
+				return -ENOMEM;
+			}
+			cp = (char *)ioremap(
+					mdp_pdata->splash_screen_addr,
+					mdp_pdata->splash_screen_size);
+			if (!cp) {
+				pr_err("IOREMAP FAILED for SPLASH\n");
+				return -ENOMEM;
+			}
+			memcpy(mfd->copy_splash_buf, cp,
+					mdp_pdata->splash_screen_size);
+
+			MDP_OUTP(MDP_BASE + 0x90008,
+					mfd->copy_splash_phys);
+		}
+#endif
+		mfd->cont_splash_done = (1 - mdp_pdata->cont_splash_enabled);
 	}
 
 	/* data chain */
@@ -3061,7 +3196,7 @@ static int mdp_probe(struct platform_device *pdev)
 		if (mfd->panel_info.pdest == DISPLAY_1)
 			mfd->dma = &dma2_data;
 		else {
-			printk(KERN_ERR "[LCD][DEBUG] Invalid Selection of destination panel\n");
+			printk(KERN_ERR "Invalid Selection of destination panel\n");
 			rc = -ENODEV;
 			mdp_clk_ctrl(0);
 			goto mdp_probe_err;
@@ -3102,7 +3237,7 @@ static int mdp_probe(struct platform_device *pdev)
 		if (mfd->panel_info.pdest == DISPLAY_1)
 			mfd->dma = &dma2_data;
 		else {
-			printk(KERN_ERR "[LCD][DEBUG] Invalid Selection of destination panel\n");
+			printk(KERN_ERR "Invalid Selection of destination panel\n");
 			rc = -ENODEV;
 			mdp_clk_ctrl(0);
 			goto mdp_probe_err;
@@ -3220,7 +3355,7 @@ static int mdp_probe(struct platform_device *pdev)
 		break;
 #endif
 	default:
-		printk(KERN_ERR "[LCD][DEBUG] mdp_probe: unknown device type!\n");
+		printk(KERN_ERR "mdp_probe: unknown device type!\n");
 		rc = -ENODEV;
 		mdp_clk_ctrl(0);
 		goto mdp_probe_err;
@@ -3263,13 +3398,9 @@ static int mdp_probe(struct platform_device *pdev)
 
 	pdev_list[pdev_list_cnt++] = pdev;
 	mdp4_extn_disp = 0;
-	/*
-	 * vsync_init call not required for mdp3.
-	 * vsync_init call required for mdp4 targets.
-	 */
-	if ((mfd->vsync_init != NULL) || (mdp_rev < MDP_REV_40)) {
-		if (mdp_rev >= MDP_REV_40)
-			mfd->vsync_init(0);
+
+	if (mfd->vsync_init != NULL) {
+		mfd->vsync_init(0);
 
 		if (!mfd->vsync_sysfs_created) {
 			mfd->dev_attr.attr.name = "vsync_event";
@@ -3290,6 +3421,14 @@ static int mdp_probe(struct platform_device *pdev)
 			mfd->vsync_sysfs_created = 1;
 		}
 	}
+#ifdef CONFIG_LGE_FPS_CONTROL
+	if (mfd->panel_info.pdest == DISPLAY_1) {
+		rc = device_create_file(mfd->fbi->dev, &dev_attr_fps);
+		if(rc < 0)
+			printk("%s : Cannot create the sysfs\n" , __func__);
+	}
+
+#endif
 	return 0;
 
       mdp_probe_err:
@@ -3348,6 +3487,17 @@ void mdp_footswitch_ctrl(boolean on)
 	mutex_unlock(&mdp_suspend_mutex);
 }
 
+void mdp_free_splash_buffer(struct msm_fb_data_type *mfd)
+{
+	if (mfd->copy_splash_buf) {
+		dma_free_coherent(NULL,	mdp_pdata->splash_screen_size,
+			mfd->copy_splash_buf,
+			(dma_addr_t) mfd->copy_splash_phys);
+
+		mfd->copy_splash_buf = NULL;
+	}
+}
+
 #ifdef CONFIG_PM
 static void mdp_suspend_sub(void)
 {
@@ -3376,7 +3526,7 @@ static int mdp_suspend(struct platform_device *pdev, pm_message_t state)
 	if (pdev->id == 0) {
 		mdp_suspend_sub();
 		if (mdp_current_clk_on) {
-			printk(KERN_WARNING "[LCD][DEBUG] MDP suspend failed\n");
+			printk(KERN_WARNING"MDP suspend failed\n");
 			return -EBUSY;
 		}
 	}
@@ -3445,7 +3595,7 @@ static int __init mdp_driver_init(void)
 
 	ret = mdp_register_driver();
 	if (ret) {
-		printk(KERN_ERR "[LCD][DEBUG] mdp_register_driver() failed!\n");
+		printk(KERN_ERR "mdp_register_driver() failed!\n");
 		return ret;
 	}
 

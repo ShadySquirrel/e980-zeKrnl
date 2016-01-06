@@ -445,8 +445,9 @@ void mdp4_hw_init(void)
 
 	/* max read pending cmd config */
 	outpdw(MDP_BASE + 0x004c, 0x02222);	/* 3 pending requests */
-	outpdw(MDP_BASE + 0x0400, 0x7FF);
-	outpdw(MDP_BASE + 0x0404, 0x30050);
+   outpdw(MDP_BASE + 0x0400, 0x7FF);
+   outpdw(MDP_BASE + 0x0404, 0x30044);
+
 
 #ifndef CONFIG_FB_MSM_OVERLAY
 	/* both REFRESH_MODE and DIRECT_OUT are ignored at BLT mode */
@@ -469,13 +470,12 @@ void mdp4_hw_init(void)
 
 	/* MDP cmd block disable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+	mdp_clk_ctrl(0);
 
-#ifdef CSC_RESTORE  //invert color
-	if(csc_dmap_changed)
+#ifdef CSC_RESTORE/*invert color*/
+	if (csc_dmap_changed)
 		mdp4_csc_config(&csc_cfg_backup_matrix);
 #endif
-
-	mdp_clk_ctrl(0);
 }
 
 
@@ -658,8 +658,23 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 		mdp4_stat.intr_vsync_p++;
 		if (panel & MDP4_PANEL_LCDC)
 			mdp4_primary_vsync_lcdc();
-		else if (panel & MDP4_PANEL_DSI_VIDEO)
+		else if (panel & MDP4_PANEL_DSI_VIDEO) {
+#ifdef CONFIG_LGE_FPS_CONTROL
+			if (mdp4_stat.enable_skip_vsync) {
+				mdp4_stat.bucket += mdp4_stat.weight;
+				if (mdp4_stat.skip_first == false) {
+					mdp4_stat.skip_first = true;
+					mdp4_primary_vsync_dsi_video();
+				} else if (mdp4_stat.skip_value <= mdp4_stat.bucket) {
+					mdp4_primary_vsync_dsi_video();
+					mdp4_stat.bucket -= mdp4_stat.skip_value;
+				} else {
+					mdp4_stat.skip_count++;
+				}
+			} else
+#endif
 			mdp4_primary_vsync_dsi_video();
+		}
 	}
 #ifdef CONFIG_FB_MSM_DTV
 	if (isr & INTR_EXTERNAL_VSYNC) {
@@ -1398,7 +1413,62 @@ struct mdp_csc_cfg mdp_csc_convert[4] = {
 		{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, },
 	},
 };
-
+#if defined(CONFIG_LGE_BROADCAST_TDMB)
+struct mdp_csc_cfg dmb_csc_convert = {
+#if defined(CONFIG_MACH_APQ8064_GK_KR) || defined(CONFIG_MACH_APQ8064_OMEGAR_KR) || defined(CONFIG_MACH_APQ8064_OMEGA_KR)
+	/*dmb YUV2RGB*/
+	0,
+	{
+		0x0230, 0x0000, 0x0331,
+		0x024e, 0xff37, 0xfe60,
+		0x028a, 0x0409, 0x0000,
+	},
+	{ 0xfff0, 0xff80, 0xff80, },
+	{ 0x0, 0x0, 0x0, },
+	{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, },
+	{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, },
+#elif defined(CONFIG_MACH_APQ8064_J1U) || defined(CONFIG_MACH_APQ8064_J1SK) || defined(CONFIG_MACH_APQ8064_J1KT)
+	/*dmb YUV2RGB*/
+	0,
+	{
+		0x0236, 0x0000, 0x0331, //283
+		0x024e, 0xff37, 0xfe60, //295
+		0x026c, 0x0409, 0x0000, //310
+	},
+	{ 0xfff0, 0xff80, 0xff80, },
+	{ 0x0, 0x0, 0x0, },
+	{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, },
+	{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, },
+#else
+	/*YUV2RGB*/
+	0,
+	{
+		0x0254, 0x0000, 0x0331,
+		0x0254, 0xff37, 0xfe60,
+		0x0254, 0x0409, 0x0000,
+	},
+	{ 0xfff0, 0xff80, 0xff80, },
+	{ 0x0, 0x0, 0x0, },
+	{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, },
+	{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, },
+#endif
+};
+#endif /*                    */
+#if defined(CONFIG_LGE_BROADCAST_ONESEG)
+struct mdp_csc_cfg dmb_csc_convert = {
+       /*YUV2RGB*/
+	0,
+	{
+		0x0254, 0x0000, 0x0331,
+		0x0254, 0xff37, 0xfe60,
+		0x0254, 0x0409, 0x0000,
+	},
+	{ 0xfff0, 0xff80, 0xff80, },
+	{ 0x0, 0x0, 0x0, },
+	{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, },
+	{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff, },
+};
+#endif /*                      */
 void mdp4_vg_csc_restore(void)
 {
         int i;

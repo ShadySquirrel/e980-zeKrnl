@@ -65,7 +65,7 @@ ssize_t mdp_dma_lcdc_show_event(struct device *dev,
 
 	wait_for_completion(&vsync_cntrl.vsync_wait);
 	ret = snprintf(buf, PAGE_SIZE, "VSYNC=%llu",
-	ktime_to_ns(vsync_cntrl.vsync_time));
+			ktime_to_ns(vsync_cntrl.vsync_time));
 	buf[strlen(buf) + 1] = '\0';
 	return ret;
 }

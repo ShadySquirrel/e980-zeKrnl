@@ -444,6 +444,8 @@ struct msm_panel_common_pdata {
 	u32 ov1_wb_size;  /* overlay1 writeback size */
 	u32 mem_hid;
 	char cont_splash_enabled;
+	u32 splash_screen_addr;
+	u32 splash_screen_size;
 	char mdp_iommu_split_domain;
 	void (*bl_pwm_disable)(void);
 	int (*bl_on_status)(void);
@@ -506,6 +508,7 @@ struct mipi_dsi_panel_platform_data {
 	char dlane_swap;
 	void (*dsi_pwm_cfg)(void);
 	char enable_wled_bl_ctrl;
+	void (*gpio_set_backlight)(int bl_level);
 };
 
 struct lvds_panel_platform_data {
@@ -537,6 +540,7 @@ struct msm_hdmi_platform_data {
 	int (*gpio_config)(int on);
 	int (*init_irq)(void);
 	bool (*check_hdcp_hw_support)(void);
+	bool (*source)(void);
 	bool is_mhl_enabled;
 };
 

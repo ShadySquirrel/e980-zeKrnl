@@ -46,12 +46,12 @@ static struct dsi_cmd_desc cmds_macp_off =
 	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(macp_off), macp_off};
 static struct dsi_cmd_desc cmds_macp_on =
 	{DTYPE_GEN_WRITE2, 1, 0, 0, 0, sizeof(macp_on), macp_on};
-#endif /* CONFIG_LGE_ESD_CHECK */
+#endif /*                      */
 
-/* [LGE_CHANGE] Remove unnecessary codes.
- * Remove mutex_lock, mutex_unlock and mipi_dsi_op_mode_config
- * in mipi_hitachi_lcd_on and mipi_hitachi_lcd_off.
- * minjong.gong@lge.com, 2011-07-19
+/*                                       
+                                                              
+                                                   
+                                   
  */
 int mipi_hitachi_lcd_on(struct platform_device *pdev)
 {
@@ -69,7 +69,7 @@ int mipi_hitachi_lcd_on(struct platform_device *pdev)
 	cnt = mipi_dsi_cmds_tx(&hitachi_tx_buf, mipi_hitachi_pdata->power_on_set_1,
 			mipi_hitachi_pdata->power_on_set_size_1);
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x14000000);//LP mode
-	
+
 	if(local_mfd==NULL)
 		local_mfd = mfd;
 	printk(KERN_INFO "%s: mipi hitachi lcd on end \n", __func__);
@@ -247,13 +247,14 @@ ssize_t read_reg(struct device *dev, struct device_attribute *attr, char *buf)
 DEVICE_ATTR(show_reg_value, 0644, read_reg, write_reg_adr);
 DEVICE_ATTR(write_cmd_type, 0644, NULL, write_cmd);
 DEVICE_ATTR(write_cmd_size, 0644, NULL, write_size);
-#endif /* CONFIG_LGE_ESD_CHECK */
+#endif /*                      */
+
 static int mipi_hitachi_lcd_probe(struct platform_device *pdev)
 {
 	struct msm_fb_panel_data *pdata;
 #ifdef CONFIG_LGE_ESD_CHECK
 	int ret;
-#endif /* CONFIG_LGE_ESD_CHECK */
+#endif /*                      */
 	if (pdev->id == 0) {
 		mipi_hitachi_pdata = pdev->dev.platform_data;
 		return 0;
@@ -275,7 +276,7 @@ static int mipi_hitachi_lcd_probe(struct platform_device *pdev)
 	if (ret) {
 		printk(KERN_ERR " %s : fail to create sysfs\n", __func__);
 	}
-#endif /* CONFIG_LGE_ESD_CHECK */
+#endif /*                      */
 	return 0;
 }
 
