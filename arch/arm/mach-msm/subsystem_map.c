@@ -410,8 +410,8 @@ struct msm_mapped_buffer *msm_subsystem_map_buffer(unsigned long phys,
 
 			if (flags & MSM_SUBSYSTEM_MAP_IOMMU_2X)
 				msm_iommu_map_extra
-					(d, temp_va, phys, length, SZ_4K,
-					IOMMU_READ);
+					(d, temp_va, length, SZ_4K,
+					(IOMMU_READ | IOMMU_WRITE));
 		}
 
 	}
@@ -429,15 +429,18 @@ struct msm_mapped_buffer *msm_subsystem_map_buffer(unsigned long phys,
 	return buf;
 
 outiova:
-	if (flags & MSM_SUBSYSTEM_MAP_IOVA)
-		iommu_unmap(d, temp_va, SZ_4K);
+	if (flags & MSM_SUBSYSTEM_MAP_IOVA) {
+		if (d)
+			iommu_unmap(d, temp_va, SZ_4K);
+	}
 outdomain:
 	if (flags & MSM_SUBSYSTEM_MAP_IOVA) {
 		/* Unmap the rest of the current domain, i */
-		for (j -= SZ_4K, temp_va -= SZ_4K;
-			j > 0; temp_va -= SZ_4K, j -= SZ_4K)
-			iommu_unmap(d, temp_va, SZ_4K);
-
+		if (d) {
+			for (j -= SZ_4K, temp_va -= SZ_4K;
+				j > 0; temp_va -= SZ_4K, j -= SZ_4K)
+				iommu_unmap(d, temp_va, SZ_4K);
+		}
 		/* Unmap all the other domains */
 		for (i--; i >= 0; i--) {
 			unsigned int domain_no, partition_no;
@@ -447,10 +450,14 @@ outdomain:
 			partition_no = msm_subsystem_get_partition_no(
 								subsys_ids[i]);
 
-			temp_va = buf->iova[i];
-			for (j = length; j > 0; j -= SZ_4K,
-						temp_va += SZ_4K)
-				iommu_unmap(d, temp_va, SZ_4K);
+			d = msm_get_iommu_domain(domain_no);
+
+			if (d) {
+				temp_va = buf->iova[i];
+				for (j = length; j > 0; j -= SZ_4K,
+							temp_va += SZ_4K)
+					iommu_unmap(d, temp_va, SZ_4K);
+			}
 			msm_free_iova_address(buf->iova[i], domain_no,
 					partition_no, length);
 		}
