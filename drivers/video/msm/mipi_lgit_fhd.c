@@ -16,7 +16,6 @@
  *
  */
 #include <linux/gpio.h>
-
 #include <mach/board_lge.h>
 
 #include "msm_fb.h"
@@ -32,7 +31,7 @@ static struct dsi_buf lgit_rx_buf;
 static struct dsi_buf lgit_camera_tx_buf;
 static struct dsi_buf lgit_shutdown_tx_buf;
 
-#if defined(CONFIG_MACH_APQ8064_GK_KR) || defined(CONFIG_MACH_APQ8064_GKATT) || defined(CONFIG_MACH_APQ8064_GV_KR) || defined(CONFIG_MACH_APQ8064_GKGLOBAL)
+#if defined(CONFIG_MACH_APQ8064_GK_KR) || defined(CONFIG_MACH_APQ8064_GKATT) || defined(CONFIG_MACH_APQ8064_GV_KR) || defined(CONFIG_MACH_APQ8064_GKGLOBAL) || defined(CONFIG_MACH_APQ8064_OMEGAR_KR) || defined(CONFIG_MACH_APQ8064_OMEGA_KR)
 //#define LGD_PANEL_WORKAROUND       /* workaround for lcd defect(lcd flickering)   20130119 */ 
 //#define LGD_PANEL_WORKAROUND_TIME  /* check the time inverval  from LCD ON to REBOOT */
 #endif
@@ -67,7 +66,7 @@ static struct dsi_buf lgit_shutdown_tx_buf;
 #define INVERSION_MODE_ALWAYS_NORMAL 1
 #define INVERSION_MODE_ALWAYS_RECOVERY 2
 
-#if defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKATT) || defined(CONFIG_MACH_APQ8064_GKGLOBAL)
+#if defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKATT) || defined(CONFIG_MACH_APQ8064_GKGLOBAL) || defined(CONFIG_MACH_APQ8064_OMEGAR) || defined(CONFIG_MACH_APQ8064_OMEGA_KR)
 /* created lcd log partition by file system Team : http://lap.lge.com:8145/lap/219040 */
 #define LCD_MMC_DEVICENAME "/dev/block/mmcblk0p36"
 #elif defined(CONFIG_MACH_APQ8064_GKKT) || defined(CONFIG_MACH_APQ8064_GKSK) || defined(CONFIG_MACH_APQ8064_GVKT)
@@ -498,7 +497,7 @@ static int mipi_stable_lcd_on(struct platform_device *pdev)
        int retry_cnt = 0;
 
        do {
-              printk("[LCD][DEBUG] %s, retry_cnt=%d\n", __func__, retry_cnt);
+              pr_info("%s: retry_cnt = %d\n", __func__, retry_cnt);
               ret = mipi_lgit_lcd_off(pdev);
 
               if (ret < 0) {
@@ -533,6 +532,8 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 	bool valid_time_interval=false;
 #endif	
 	struct dsi_cmd_desc *reg;
+
+  
 	
 	if(first_boot_flag==false)
 	{
@@ -629,6 +630,7 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 		}
 
 #endif
+  pr_info("%s:+ fhd\n", __func__);
 
        if (check_stable_lcd_on)
               mipi_stable_lcd_on(pdev);
@@ -647,9 +649,7 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 				  local_mfd1 = mfd;
 #endif
 
-	printk(KERN_INFO "[LCD][DEBUG] %s is started \n", __func__);
-
-//LGE_UPDATE_S hj.eum@lge.com : adding change mipi mode to write register setting of LCD IC
+//                                                                                         
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);     //HS mode
 
 #if defined (CONFIG_MACH_APQ8064_GVDCM)
@@ -691,7 +691,7 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
        if (cnt < 0)
               return cnt;
 #endif
-//LGE_UPDATE_E hj.eum@lge.com : adding change mipi mode to write register setting of LCD IC
+//                                                                                         
 
 #ifdef LGD_PANEL_WORKAROUND
 
@@ -703,18 +703,17 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 		}
 		
 #endif
-
-	printk(KERN_INFO "[LCD][DEBUG] %s is ended \n", __func__);
-
+  pr_info("%s:- fhd\n", __func__);
+	
        return cnt;
 }
 
 int mipi_lgit_lcd_off(struct platform_device *pdev)
 {
-       int cnt = 0;
+  int cnt = 0;
 	struct msm_fb_data_type *mfd;
 	
-       printk(KERN_INFO "[LCD][DEBUG] %s is started \n", __func__);
+  pr_info("%s:+ fhd\n", __func__);
 
 	mfd =  platform_get_drvdata(pdev);
 	
@@ -733,16 +732,14 @@ int mipi_lgit_lcd_off(struct platform_device *pdev)
               return cnt;
 
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x14000000);//LP mode
-	printk(KERN_INFO "[LCD][DEBUG] %s is ended \n", __func__);
-
 	
 #ifdef LGD_PANEL_WORKAROUND
 		//unset lcd_on_flag
 		if(get_inversion_mode()==INVERSION_MODE_DEFAULT)
 			set_lcd_status(LCD_STATUS_OFF);
 #endif
-	
-       return cnt;
+  pr_info("%s:- fhd\n", __func__);	
+  return cnt;
 }
 
 #ifdef CONFIG_FB_MSM_MIPI_LGIT_VIDEO_FHD_INVERSE_PT
@@ -1182,6 +1179,7 @@ static int mipi_lgit_lcd_probe(struct platform_device *pdev)
 #if defined(CONFIG_LGE_R63311_COLOR_ENGINE)
     int err;
 #endif
+  
 	if (pdev->id == 0) {
 		mipi_lgit_pdata = pdev->dev.platform_data;
 		return 0;

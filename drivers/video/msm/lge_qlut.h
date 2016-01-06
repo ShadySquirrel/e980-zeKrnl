@@ -37,5 +37,5 @@ extern int g_kcal_b;
 #define scaled_by_kcal(rgb, kcal) \
 		(((((unsigned int)(rgb) * (unsigned int)(kcal)) << 16) / \
 		(unsigned int)MAX_KCAL_V) >> 16)
-#endif /* CONFIG_LGE_KCAL_QLUT */
-#endif /* CONFIG_LGE_QC_LCDC_LUT */
+#endif /*                      */
+#endif /*                        */

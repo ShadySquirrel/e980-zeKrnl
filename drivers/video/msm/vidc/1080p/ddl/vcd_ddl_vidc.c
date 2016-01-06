@@ -140,8 +140,8 @@ void ddl_vidc_channel_set(struct ddl_client_context *ddl)
 	if (!res_trk_check_for_sec_session() && hw_ctxt) {
 		memset(hw_ctxt, 0, ctxt_mem_size);
 		msm_ion_do_cache_op(ddl_context->video_ion_client,
-		alloc_handle, hw_ctxt, ctxt_mem_size,
-		ION_IOC_CLEAN_INV_CACHES);
+			alloc_handle, hw_ctxt, ctxt_mem_size,
+			ION_IOC_CLEAN_INV_CACHES);
 		arg1 = 1 << 29;
 	}
 	switch (*vcd_codec) {
@@ -617,10 +617,11 @@ void ddl_vidc_encode_init_codec(struct ddl_client_context *ddl)
 	scaled_frame_rate = DDL_FRAMERATE_SCALE(encoder->\
 			frame_rate.fps_numerator) /
 			encoder->frame_rate.fps_denominator;
+	//                                                          
 	if ((encoder->codec.codec == VCD_CODEC_H263) &&
 		(DDL_FRAMERATE_SCALE(DDL_INITIAL_FRAME_RATE)
 		 != scaled_frame_rate))
-		h263_cpfc_enable = true;
+		h263_cpfc_enable = false;
 	if (encoder->codec.codec == VCD_CODEC_H264)
 		pic_order_count = true;
 

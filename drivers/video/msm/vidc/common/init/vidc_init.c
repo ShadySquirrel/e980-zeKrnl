@@ -555,6 +555,17 @@ u32 vidc_lookup_addr_table(struct video_client_ctx *client_ctx,
 
 	if (!client_ctx)
 		return false;
+
+#if defined(CONFIG_MACH_APQ8064_ALTEV)
+// [altev][bsp display], sunghun1.jung@lgepartner.com, 20131106 Avoid Kernel Crash, when Fatory reset. {
+// Try mutex_lock() in null, It can happen kernel crash,
+    if (&client_ctx->enrty_queue_lock == NULL) {
+        ERR("%s(): Warnning!, After released mutex of video_client_ctx, Try to reference null pointer.\n", __func__);
+        return false;
+    }
+// [altev][bsp display], sunghun1.jung@lgepartner.com, 20131106 Avoid Kernel Crash, when Fatory reset.  }
+#endif
+
 	mutex_lock(&client_ctx->enrty_queue_lock);
 	if (buffer == BUFFER_TYPE_INPUT) {
 		buf_addr_table = client_ctx->input_buf_addr_table;
@@ -727,6 +738,16 @@ u32 vidc_insert_addr_table(struct video_client_ctx *client_ctx,
 				 __func__);
 				goto bail_out_add;
 			}
+			*kernel_vaddr = (unsigned long)
+				ion_map_kernel(
+				client_ctx->user_ion_client,
+				buff_ion_handle);
+			if (IS_ERR_OR_NULL((void *)*kernel_vaddr)) {
+				ERR("%s():ION virtual addr fail\n",
+				__func__);
+				*kernel_vaddr = (unsigned long)NULL;
+				goto ion_free_error;
+			}
 			if (res_trk_check_for_sec_session() ||
 			   (res_trk_get_core_type() == (u32)VCD_CORE_720P)) {
 				if (ion_phys(client_ctx->user_ion_client,
@@ -764,7 +785,6 @@ u32 vidc_insert_addr_table(struct video_client_ctx *client_ctx,
 						 iova;
 			}
 		}
-		(*kernel_vaddr) = phys_addr;
 		phys_addr += buffer_addr_offset;
 		(*kernel_vaddr) += buffer_addr_offset;
 		buf_addr_table[*num_of_buffers].user_vaddr = user_vaddr;
@@ -786,6 +806,9 @@ u32 vidc_insert_addr_table(struct video_client_ctx *client_ctx,
 	mutex_unlock(&client_ctx->enrty_queue_lock);
 	return true;
 ion_map_error:
+	if (*kernel_vaddr && buff_ion_handle)
+	ion_unmap_kernel(client_ctx->user_ion_client, buff_ion_handle);
+ion_free_error:
 	if (!IS_ERR_OR_NULL(buff_ion_handle))
 		ion_free(client_ctx->user_ion_client, buff_ion_handle);
 bail_out_add:
@@ -907,6 +930,8 @@ u32 vidc_delete_addr_table(struct video_client_ctx *client_ctx,
 	}
 	*kernel_vaddr = buf_addr_table[i].kernel_vaddr;
 	if (buf_addr_table[i].buff_ion_handle) {
+		ion_unmap_kernel(client_ctx->user_ion_client,
+				buf_addr_table[i].buff_ion_handle);
 		if (!res_trk_check_for_sec_session() &&
 		   (res_trk_get_core_type() != (u32)VCD_CORE_720P)) {
 			ion_unmap_iommu(client_ctx->user_ion_client,
