@@ -269,7 +269,7 @@ static void mdp4_dsi_cmd_pipe_clean(struct vsync_update *vp)
 static void mdp4_dsi_cmd_blt_ov_update(struct mdp4_overlay_pipe *pipe);
 static int mdp4_dsi_cmd_clk_check(struct vsycn_ctrl *vctrl);
 
-int mdp4_dsi_cmd_pipe_commit(int cndx, int wait, u32 *release_busy)
+int mdp4_dsi_cmd_pipe_commit(int cndx, int wait)
 {
 	int  i, undx;
 	int mixer = 0;
@@ -415,17 +415,8 @@ int mdp4_dsi_cmd_pipe_commit(int cndx, int wait, u32 *release_busy)
 
 	mdp4_stat.overlay_commit[pipe->mixer_num]++;
 
-	if (wait) {
-		if (release_busy) {
-			msm_fb_release_busy(vctrl->mfd);
-			*release_busy = false;
-			mutex_unlock(&vctrl->mfd->dma->ov_mutex);
-		}
-		if (pipe->ov_blt_addr)
-			mdp4_dsi_cmd_wait4ov(0);
-		else
-			mdp4_dsi_cmd_wait4dmap(0);
-	}
+	if (wait)
+		mdp4_dsi_cmd_wait4vsync(0);
 
 	return cnt;
 }
@@ -761,32 +752,57 @@ static __u32 msm_fb_line_length(__u32 fb_index, __u32 xres, int bpp)
 void mdp4_mipi_vsync_enable(struct msm_fb_data_type *mfd,
 		struct mdp4_overlay_pipe *pipe, int which)
 {
-	uint32 start_y, data, tear_en;
+	uint32 data, tear_en;
 
 	tear_en = (1 << which);
 
 	mdp_clk_ctrl(1);
+
+	data = inpdw(MDP_BASE + 0x20c);
 	if ((mfd->use_mdp_vsync) && (mfd->ibuf.vsync_enable) &&
-		(mfd->panel_info.lcd.vsync_enable)) {
-
-		if (vsync_start_y_adjust <= pipe->dst_y)
-			start_y = pipe->dst_y - vsync_start_y_adjust;
-		else
-			start_y = (mfd->total_lcd_lines - 1) -
-				(vsync_start_y_adjust - pipe->dst_y);
-		if (which == 0)
-			MDP_OUTP(MDP_BASE + 0x210, start_y);	/* primary */
-		else
-			MDP_OUTP(MDP_BASE + 0x214, start_y);	/* secondary */
-
-		data = inpdw(MDP_BASE + 0x20c);
+	    (mfd->panel_info.lcd.vsync_enable)) {
 		data |= tear_en;
-		MDP_OUTP(MDP_BASE + 0x20c, data);
-	} else {
-		data = inpdw(MDP_BASE + 0x20c);
+		/*
+		 * rdptr init and irq cannot be same due to h/w bug.
+		 * if they are same, rdptr irqs could be missed.
+		 */
+		if (mfd->panel_info.lcd.primary_vsync_init ||
+			mfd->panel_info.lcd.primary_rdptr_irq) {
+			MDP_OUTP(MDP_BASE + 0x128,
+				mfd->panel_info.lcd.primary_vsync_init);
+			MDP_OUTP(MDP_BASE + 0x21C,
+				mfd->panel_info.lcd.primary_rdptr_irq);
+		} else {
+			MDP_OUTP(MDP_BASE + 0x128, 0);
+			MDP_OUTP(MDP_BASE + 0x21C, 1);
+		}
+
+		/*
+		 * adjust start position and threshold to make sure
+		 * write ptr follows read pts (TE is effective), and
+		 * at the same write is not throttled(shorter dmap
+		 * time)
+		 */
+		if (mfd->panel_info.lcd.primary_start_pos)
+			MDP_OUTP(MDP_BASE + 0x210,
+				mfd->panel_info.lcd.primary_start_pos);
+		else
+			MDP_OUTP(MDP_BASE + 0x210,
+				 mfd->panel_info.lcd.v_back_porch +
+				 mfd->panel_info.lcd.v_front_porch +
+				 vsync_start_y_adjust);
+
+		if (mfd->panel_info.lcd.vsync_threshold_continue &&
+				mfd->panel_info.lcd.vsync_threshold_start)
+			MDP_OUTP(MDP_BASE + 0x200,
+			 ((mfd->panel_info.lcd.vsync_threshold_continue << 16) |
+				mfd->panel_info.lcd.vsync_threshold_start));
+		else
+			MDP_OUTP(MDP_BASE + 0x200,
+			 ((4 << 16) | mfd->panel_info.lcd.v_pulse_width));
+	} else
 		data &= ~tear_en;
-		MDP_OUTP(MDP_BASE + 0x20c, data);
-	}
+	MDP_OUTP(MDP_BASE + 0x20c, data);
 	mdp_clk_ctrl(0);
 }
 
@@ -1235,7 +1251,7 @@ void mdp4_dsi_cmd_overlay(struct msm_fb_data_type *mfd)
 	}
 
 	mdp4_overlay_mdp_perf_upd(mfd, 1);
-	mdp4_dsi_cmd_pipe_commit(cndx, 1, NULL);
+	mdp4_dsi_cmd_pipe_commit(cndx, 0);
 	mdp4_overlay_mdp_perf_upd(mfd, 0);
 	mutex_unlock(&mfd->dma->ov_mutex);
 

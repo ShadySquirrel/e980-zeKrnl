@@ -304,9 +304,8 @@ int ion_system_heap_map_iommu(struct ion_buffer *buffer,
 
 	extra_iova_addr = data->iova_addr + buffer->size;
 	if (extra) {
-		unsigned long phys_addr = sg_phys(table->sgl);
-		ret = msm_iommu_map_extra(domain, extra_iova_addr, phys_addr,
-					extra, SZ_4K, prot);
+		ret = msm_iommu_map_extra(domain, extra_iova_addr, extra, SZ_4K,
+					  prot);
 		if (ret)
 			goto out2;
 	}
@@ -508,7 +507,7 @@ int ion_system_contig_heap_map_iommu(struct ion_buffer *buffer,
 	}
 	page = virt_to_page(buffer->vaddr);
 
-	sglist = kmalloc(sizeof(*sglist), GFP_KERNEL);
+	sglist = vmalloc(sizeof(*sglist));
 	if (!sglist)
 		goto out1;
 
@@ -525,19 +524,18 @@ int ion_system_contig_heap_map_iommu(struct ion_buffer *buffer,
 
 	if (extra) {
 		unsigned long extra_iova_addr = data->iova_addr + buffer->size;
-		unsigned long phys_addr = sg_phys(sglist);
-		ret = msm_iommu_map_extra(domain, extra_iova_addr, phys_addr,
-					extra, SZ_4K, prot);
+		ret = msm_iommu_map_extra(domain, extra_iova_addr, extra, SZ_4K,
+					  prot);
 		if (ret)
 			goto out2;
 	}
-	kfree(sglist);
+	vfree(sglist);
 	return ret;
 out2:
 	iommu_unmap_range(domain, data->iova_addr, buffer->size);
 
 out1:
-	kfree(sglist);
+	vfree(sglist);
 	msm_free_iova_address(data->iova_addr, domain_num, partition_num,
 						data->mapped_size);
 out:

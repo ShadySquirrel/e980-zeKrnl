@@ -19,7 +19,7 @@
 echo -e "#############################################################################################################"
 echo -e "###### zeKrnl building script"
 echo -e "######"
-echo -e "###### Version 2.3, 24/11/2015 - (Ultimate Madness)³ (tm) edition."
+echo -e "###### Version 2.5.2, 06/01/2016 - (Ultimate Madness)^5 (tm) edition."
 echo -e "######"
 echo -e "###### Written by ShadySquirrel @ github (https://github.com/ShadySquirrel/) AKA ShadySquirrel @ XDA"
 echo -e "###### Big thanks to my Uni, for my lack of sleep and increased desire to do anything else but study."
@@ -107,6 +107,13 @@ ZIP_GEN=0
 # - Sign flashable zip
 ZIP_SIGN=0
 
+# Clean-up after build
+function clean_that_mess {
+	echo -e "++ Removing tmp/boot..."
+	rm -rf "$PWD/build_tools/tmp/boot"
+	echo -e "++ Removing tmp/zip_file..."
+	rm -rvf "$PWD/build_tools/tmp/zip_file"
+}
 
 # Function to generate boot image and flashable zip
 function generate_bootImg {
@@ -210,17 +217,23 @@ function generate_bootImg {
 		echo -e "++ Generating boot.img"
 		
 		abootimg --create "$PWD/build_tools/tmp/boot/boot.img" -f "$PWD/build_tools/tmp/boot/bootimg.cfg" -k "$PWD/build_tools/tmp/boot/zImage" -r "$PWD/build_tools/tmp/boot/initrd.img"
-		
-		if [ -e "$PWD/build_tools/tmp/boot/boot.img" ]; then
-			echo -e "+++ Success, boot.img generated. Checkout build_tools/out/ directory!"
-			cp -rvf "$PWD/build_tools/tmp/boot/boot.img" "$PWD/build_tools/out"
-			# Silently generate boot.img .md5 file
-			curPWD=$PWD
-			cd "build_tools/out"
-			echo `md5sum boot.img` >> "boot.img.md5sum"
-			cd "$curPWD"
+		abootimg_out=$?
+		if [ $abootimg_out -eq 0 ]; then
+			if [ -e "$PWD/build_tools/tmp/boot/boot.img" ]; then
+				echo -e "+++ Success, boot.img generated. Checkout build_tools/out/ directory!"
+				cp -rvf "$PWD/build_tools/tmp/boot/boot.img" "$PWD/build_tools/out"
+				# Silently generate boot.img .md5 file
+				curPWD=$PWD
+				cd "build_tools/out"
+				echo `md5sum boot.img` >> "boot.img.md5sum"
+				cd "$curPWD"
+			else
+				echo -e "+++ Failure, boot.img not generated"
+				exit
+			fi
 		else
-			echo -e "+++ Failure, boot.img not generated"
+			echo -e "+++ abootimg failed! (error code: $abootimg_out) Stop."
+			exit;
 		fi
 	else
 		echo -e "+ ERROR: zImage not found. Was build a success?"
@@ -237,7 +250,7 @@ function generate_bootImg {
 						break;;
 					n)
 						echo -e "++ Cleaning up..."
-						rm -rvf "build_tools/tmp"
+						clean_that_mess
 						break;;
 				esac
 			done
@@ -277,12 +290,13 @@ function generate_flashableZip {
 		
 		# Copy modules
 		echo -e " "
-		echo -e "++ Copying modules"
-		cp -rvf "$KBUILD_OUTPUT/drivers/crypto/msm/qce40.ko" "build_tools/tmp/zip_file/system/lib/modules"
-		cp -rvf "$KBUILD_OUTPUT/drivers/crypto/msm/qcedev.ko" "build_tools/tmp/zip_file/system/lib/modules"
-		cp -rvf "$KBUILD_OUTPUT/drivers/crypto/msm/qcrypto.ko" "build_tools/tmp/zip_file/system/lib/modules"
-		cp -rvf "$KBUILD_OUTPUT/drivers/scsi/scsi_wait_scan.ko" "build_tools/tmp/zip_file/system/lib/modules"
-		cp -rvf "$KBUILD_OUTPUT/block/test-iosched.ko" "build_tools/tmp/zip_file/system/lib/modules"
+		echo -e "++ Getting list of modules to copy..."
+		while read -r line; do
+			module_path=$(echo $line | cut -d "/" -f2-)
+			module_name=`echo ${module_path##*/}`
+			echo -e "++ Copying module $module (from $module_path)" 
+			cp -rvf "$KBUILD_OUTPUT/$module_path" "build_tools/tmp/zip_file/system/lib/modules"
+		done < "$KBUILD_OUTPUT/modules.order"
 		
 		echo -e " "
 		# Get build number.
@@ -356,7 +370,7 @@ function generate_flashableZip {
 		# Cleanup
 		echo -e " "
 		echo -e "++ Cleaning up..."
-		rm -rf "build_tools/tmp"
+		clean_that_mess
 		
 		# Inform
 		echo -e " "
@@ -367,6 +381,14 @@ function generate_flashableZip {
 	else
 		echo -e "+ ERROR: no boot.img found. Build failed or -i switch omited."
 	fi
+}
+
+# Convert time
+function time_display {
+ ((h=${1}/3600))
+ ((m=(${1}%3600)/60))
+ ((s=${1}%60))
+ printf "Build script took: %02d:%02d:%02d\n" $h $m $s
 }
 
 # Build function
@@ -452,7 +474,24 @@ function start_build_cmd {
 	echo -e " "
 	echo -e "++ Starting build #$(cat .build_no)"
 	echo -e " "	
-	time make -j$jobs;
+	
+	# Mark start...
+	build_start=$(date +%s)
+	# Run!
+	make -j$jobs;
+	status=$?;
+	# Mark end...
+	build_end=$(date +%s)
+	# Calculate!
+	build_time_dif=$(( $build_end - $build_start ))
+	echo -e " "
+	echo -e $(time_display $build_time_dif)
+	echo -e " "
+	case "$status" in
+		0) echo -e '+ Build successful.'; ;;
+		*) echo -e "+ Build failed; check output for errors and try again after fixing them"; exit; ;;
+	esac;
+	
 	
 	# Check if build was a success and if yes, ask user for boot.img generation
 	if [ -e "$KBUILD_OUTPUT/arch/$ARCH/boot/zImage" ]; then
@@ -510,6 +549,8 @@ function print_error_msg {
 	echo -e "\t -s || --sign -> Sign flashable zip"
 	echo -e "\t -h || --help -> displays this message"
 	echo -e "\t -j=# || --jobs=# -> number of jobs/threads"
+	echo -e "\t -d=name || --def=name -> defconfig name"
+	echo -e "\t --init=name || override initrd"
 	echo -e "# is a numeric value; 1 for yes, 2 for no"
 	echo -e "If some of variables aren't defined, script will let it's"
 	echo -e "own free will decide..."
@@ -620,6 +661,22 @@ if [[ $# -gt 0 ]]; then
 				fi
 				shift
 				;;
+			-d=* | --def=*)
+				defconfig="${i#*=}"
+				if [ $nJobs -gt 0 ]; then
+					defconfig_name=$defconfig
+					echo -e "+ Using $defconfig as config for build config"
+				fi
+				shift
+				;;
+			--init=*)
+				initf="${i#*=}"
+				if [ $nJobs -gt 0 ]; then
+					template_bootimg=$initf
+					echo -e "+ Using $initf as initrd template"
+				fi
+				shift
+				;;
 			* )
 				print_error_msg;
 				break;;
@@ -633,6 +690,5 @@ if [[ $# -gt 0 ]]; then
 	
 	start_build_cmd;
 else
-	check_stuff;
-	start_build;
+	print_error_msg
 fi

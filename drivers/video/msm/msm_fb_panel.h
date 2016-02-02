@@ -56,11 +56,6 @@ typedef enum {
 	MAX_PHYS_TARGET_NUM,
 } DISP_TARGET_PHYS;
 
-enum {
-	BLT_SWITCH_TG_OFF,
-	BLT_SWITCH_TG_ON
-};
-
 /* panel info type */
 struct lcd_panel_info {
 	__u32 vsync_enable;
@@ -215,12 +210,6 @@ struct msm_fb_panel_data {
 	int (*clk_func) (int enable);
 	int (*fps_level_change) (struct platform_device *pdev,
 					u32 fps_level);
-#ifdef CONFIG_CABC_DIMMING_SWITCH
-	void (*dimming_on) (struct msm_fb_data_type *);
-#endif
-#ifdef CONFIG_SRE_CONTROL
-	void (*sre_ctrl) (struct msm_fb_data_type *, unsigned long);
-#endif
 };
 
 /*===========================================================================

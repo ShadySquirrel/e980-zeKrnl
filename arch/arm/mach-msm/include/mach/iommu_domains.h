@@ -90,7 +90,6 @@ extern int msm_use_iommu(void);
 
 extern int msm_iommu_map_extra(struct iommu_domain *domain,
 						unsigned long start_iova,
-						unsigned long phys_addr,
 						unsigned long size,
 						unsigned long page_size,
 						int cached);

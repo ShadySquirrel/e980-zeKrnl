@@ -654,8 +654,7 @@ static void mdp4_dtv_tg_off(struct vsycn_ctrl *vctrl)
 	spin_lock_irqsave(&vctrl->spin_lock, flags);
 	MDP_OUTP(MDP_BASE + DTV_BASE, 0); /* turn off timing generator */
 	spin_unlock_irqrestore(&vctrl->spin_lock, flags);
-
-	mdp4_dtv_wait4vsync(0);
+	msleep(20);
 }
 
 int mdp4_dtv_off(struct platform_device *pdev)
@@ -1031,6 +1030,7 @@ void mdp4_dtv_set_black_screen(void)
 	temp_src_format = inpdw(rgb_base + 0x0050);
 	MDP_OUTP(rgb_base + 0x0050, temp_src_format | BIT(22));
 	mdp4_overlay_reg_flush(vctrl->base_pipe, 1);
+
 	mdp4_mixer_stage_up(vctrl->base_pipe, 0);
 	mdp4_mixer_stage_commit(vctrl->base_pipe->mixer_num);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);

@@ -80,7 +80,8 @@ static struct cma *cma_get_area(phys_addr_t base)
 	return NULL;
 }
 
-static struct cma *cma_get_area_by_name(const char *name)
+// warning: 'cma_get_area_by_name' defined but not used [-Wunused-function]
+/*static struct cma *cma_get_area_by_name(const char *name)
 {
 	int i;
 	if (!name)
@@ -90,7 +91,7 @@ static struct cma *cma_get_area_by_name(const char *name)
 		if (cma_areas[i].name && strcmp(cma_areas[i].name, name) == 0)
 			return cma_areas[i].cma;
 	return NULL;
-}
+}*/
 
 
 

@@ -49,7 +49,8 @@ static struct mipi_dsi_phy_ctrl dsi_video_mode_phy_db = {
 	 0x40, 0x07, 0x01, 0x00, 0x14, 0x03, 0x00, 0x02,
 	 0x00, 0x20, 0x00, 0x01},
 
-#elif defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKKT) || defined(CONFIG_MACH_APQ8064_GKSK) 
+#elif defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKKT)    \
+    || defined(CONFIG_MACH_APQ8064_GKSK) || defined(CONFIG_MACH_APQ8064_GVAR_CMCC) || defined(CONFIG_MACH_APQ8064_OMEGAR) || defined(CONFIG_MACH_APQ8064_OMEGA)
 	{0x00, 0xEA, 0x01, 0x1A, 0x00, 0x50, 0x48, 0x63,
 	 0x40, 0x07, 0x01, 0x00, 0x14, 0x03, 0x00, 0x02,
 	 0x00, 0x20, 0x00, 0x01},
@@ -57,7 +58,7 @@ static struct mipi_dsi_phy_ctrl dsi_video_mode_phy_db = {
 #endif
 };
 
-#if defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKKT) || defined(CONFIG_MACH_APQ8064_GKSK) 
+#if defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKKT) || defined(CONFIG_MACH_APQ8064_GKSK)
 static struct mipi_dsi_phy_ctrl dsi_video_mode_phy_db_domestic_rev_c = {
 	/* 1920*1080, RGB888, 4 Lane 60 fps video mode */
 #if defined(DSI_BIT_CLK_900MHZ)
@@ -76,6 +77,8 @@ static struct mipi_dsi_phy_ctrl dsi_video_mode_phy_db_domestic_rev_c = {
 #endif
 };
 #endif
+
+
 
 
 static int __init mipi_video_lgit_fhd_pt_init(void)
@@ -99,7 +102,7 @@ static int __init mipi_video_lgit_fhd_pt_init(void)
 	pinfo.lcdc.h_back_porch = 144;		/* 106 */
 	pinfo.lcdc.h_front_porch = 152;		/* 95 */
 
-#elif defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKKT) || defined(CONFIG_MACH_APQ8064_GKSK) 
+#elif defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKKT) || defined(CONFIG_MACH_APQ8064_GKSK)
        if (lge_get_board_revno() == HW_REV_C) {
               pinfo.lcdc.h_back_porch = 85;		/* 106 */
               pinfo.lcdc.h_front_porch = 100;		/* 95 */
@@ -107,14 +110,16 @@ static int __init mipi_video_lgit_fhd_pt_init(void)
               pinfo.lcdc.h_back_porch = 150;
               pinfo.lcdc.h_front_porch = 179;
 	}
-
+#elif defined(CONFIG_MACH_APQ8064_GVAR_CMCC)|| defined(CONFIG_MACH_APQ8064_OMEGAR) || defined(CONFIG_MACH_APQ8064_OMEGA)
+  pinfo.lcdc.h_back_porch = 150;
+  pinfo.lcdc.h_front_porch = 179;
 #endif
 	pinfo.lcdc.h_pulse_width = 4;
 	pinfo.lcdc.v_back_porch = 9;
 	pinfo.lcdc.v_front_porch = 3;
 	pinfo.lcdc.v_pulse_width = 1;
 	pinfo.lcdc.border_clr = 0;         /* blk */
-	pinfo.lcdc.underflow_clr = 0xff;   /* blue */
+	pinfo.lcdc.underflow_clr = 0x00;   /* black */
 	pinfo.lcdc.hsync_skew = 0;
 	pinfo.bl_max = 0xFF;
 	pinfo.bl_min = 0;
@@ -147,11 +152,13 @@ static int __init mipi_video_lgit_fhd_pt_init(void)
 	pinfo.clk_rate = 910000000;
 #elif defined(CONFIG_MACH_APQ8064_GKATT) || defined(CONFIG_MACH_APQ8064_GKGLOBAL)
 	pinfo.clk_rate = 960000000;
-#elif defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKKT) || defined(CONFIG_MACH_APQ8064_GKSK) 
+#elif defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKKT) || defined(CONFIG_MACH_APQ8064_GKSK)
        if (lge_get_board_revno() == HW_REV_C)
               pinfo.clk_rate = 884000000;
        else
               pinfo.clk_rate = 983000000;
+#elif defined(CONFIG_MACH_APQ8064_GVAR_CMCC)|| defined(CONFIG_MACH_APQ8064_OMEGAR) || defined(CONFIG_MACH_APQ8064_OMEGA)
+  pinfo.clk_rate = 983000000;
 #endif
 	pinfo.mipi.frame_rate = 60;	
 #endif
@@ -160,7 +167,7 @@ static int __init mipi_video_lgit_fhd_pt_init(void)
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;
 
 
-#if defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKKT) || defined(CONFIG_MACH_APQ8064_GKSK) 
+#if defined(CONFIG_MACH_APQ8064_GKU) || defined(CONFIG_MACH_APQ8064_GKKT) || defined(CONFIG_MACH_APQ8064_GKSK)
        if (lge_get_board_revno() == HW_REV_C)
               pinfo.mipi.dsi_phy_db = &dsi_video_mode_phy_db_domestic_rev_c;
        else
@@ -177,4 +184,3 @@ static int __init mipi_video_lgit_fhd_pt_init(void)
 }
 
 module_init(mipi_video_lgit_fhd_pt_init);
-

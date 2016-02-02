@@ -149,9 +149,9 @@ static struct kobject *cores_kobj;
 // ShadyClocks: Set number of available freqencies...
 #ifdef CONFIG_SHADYCLOCKS // ShadyClocks enabled, now check what is configured there..
 #if defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
-#define DCVS_MAX_NUM_FREQS 23
+#define DCVS_MAX_NUM_FREQS 25
 #elif defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && !defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
-#define DCVS_MAX_NUM_FREQS 17
+#define DCVS_MAX_NUM_FREQS 19
 #elif !defined(CONFIG_SHADYCLOCKS_UNDERCLOCK) && defined(CONFIG_SHADYCLOCKS_OVERCLOCK)
 #define DCVS_MAX_NUM_FREQS 21
 #else

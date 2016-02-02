@@ -40,14 +40,16 @@
 #include <linux/switch.h>
 #include <linux/msm_mdp.h>
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#undef CONFIG_HAS_EARLYSUSPEND
+#endif
+
 #include "msm_fb_panel.h"
 #include "mdp.h"
 
 #define MSM_FB_DEFAULT_PAGE_SIZE 2
 #define MFD_KEY  0x11161126
 #define MSM_FB_MAX_DEV_LIST 32
-/* Disable EARLYSUSPEND for mdp driver */
-#define DISABLE_EARLY_SUSPEND
 
 struct disp_info_type_suspend {
 	boolean op_enable;
@@ -162,13 +164,11 @@ struct msm_fb_data_type {
 	struct dentry *sub_dir;
 #endif
 
-#ifndef DISABLE_EARLY_SUSPEND
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend early_suspend;
 #ifdef CONFIG_FB_MSM_MDDI
 	struct early_suspend mddi_early_suspend;
 	struct early_suspend mddi_ext_early_suspend;
-#endif
 #endif
 #endif
 	u32 mdp_fb_page_protection;
@@ -200,34 +200,25 @@ struct msm_fb_data_type {
 	void *cpu_pm_hdl;
 	u32 acq_fen_cnt;
 	struct sync_fence *acq_fen[MDP_MAX_FENCE_FD];
+	int cur_rel_fen_fd;
+	struct sync_pt *cur_rel_sync_pt;
+	struct sync_fence *cur_rel_fence;
+	struct sync_fence *last_rel_fence;
 	struct sw_sync_timeline *timeline;
 	int timeline_value;
+	u32 last_acq_fen_cnt;
+	struct sync_fence *last_acq_fen[MDP_MAX_FENCE_FD];
 	struct mutex sync_mutex;
-	struct mutex queue_mutex;
 	struct completion commit_comp;
 	u32 is_committing;
-	atomic_t commit_cnt;
-	struct task_struct *commit_thread;
-	wait_queue_head_t commit_queue;
-	int wake_commit_thread;
+	struct work_struct commit_work;
 	void *msm_fb_backup;
 	boolean panel_driver_on;
 	int vsync_sysfs_created;
 	void *copy_splash_buf;
 	unsigned char *copy_splash_phys;
 	uint32 sec_mapped;
-	uint32 sec_active;
 	uint32 max_map_size;
-#ifdef CONFIG_CABC_DIMMING_SWITCH
-	struct workqueue_struct *dimming_wq;
-	struct work_struct dimming_work;
-	struct timer_list dimming_update_timer;
-#endif
-#ifdef CONFIG_SRE_CONTROL
-	struct workqueue_struct *sre_wq;
-	struct work_struct sre_work;
-	struct timer_list sre_update_timer;
-#endif
 };
 struct msm_fb_backup_type {
 	struct fb_info info;
@@ -254,8 +245,6 @@ int calc_fb_offset(struct msm_fb_data_type *mfd, struct fb_info *fbi, int bpp);
 void msm_fb_wait_for_fence(struct msm_fb_data_type *mfd);
 int msm_fb_signal_timeline(struct msm_fb_data_type *mfd);
 void msm_fb_release_timeline(struct msm_fb_data_type *mfd);
-void msm_fb_release_busy(struct msm_fb_data_type *mfd);
-
 #ifdef CONFIG_FB_BACKLIGHT
 void msm_fb_config_backlight(struct msm_fb_data_type *mfd);
 #endif
@@ -263,10 +252,5 @@ void msm_fb_config_backlight(struct msm_fb_data_type *mfd);
 void fill_black_screen(bool on, uint8 pipe_num, uint8 mixer_num);
 int msm_fb_check_frame_rate(struct msm_fb_data_type *mfd,
 				struct fb_info *info);
-
-#ifdef CONFIG_FB_MSM_LOGO
-#define INIT_IMAGE_FILE "/initlogo.rle"
-int load_565rle_image(char *filename, bool bf_supported);
-#endif
 
 #endif /* MSM_FB_H */
