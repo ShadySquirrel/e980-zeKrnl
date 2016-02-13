@@ -17,7 +17,7 @@
 
 ## Let me introduce myself...
 echo -e "#############################################################################################################"
-echo -e "###### zeKrnl building script"
+echo -e "###### ShadySquirrel's building script"
 echo -e "######"
 echo -e "###### Version 2.5.2, 06/01/2016 - (Ultimate Madness)^5 (tm) edition."
 echo -e "######"
