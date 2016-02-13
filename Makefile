@@ -1,9 +1,9 @@
 VERSION=3
 PATCHLEVEL=4
 SUBLEVEL=0
-EXTRAVERSION=-v1.8_lp-dev-gfx
+EXTRAVERSION=-v1.8_lollipop
 NAME = Saber-toothed Squirrel
-DEVEL_NAME=zeKrnl
+DEVEL_NAME=ShadyKernel
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
