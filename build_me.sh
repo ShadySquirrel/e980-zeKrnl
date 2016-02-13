@@ -53,7 +53,7 @@ toolchains_dir="/media/data/toolchains"
 toolchain_name="UBER_arm-eabi-4.9"
 
 # Now, name of the configuration file...
-defconfig_name="zeKrnl_e980_defconfig"
+defconfig_name="ShadyKernel_e980_defconfig"
 
 # Set number of threads/cores. If you have 4 cores, set it to 4+1=5.
 # General rule: n cores => value is n+1. Set it to 1 if you want to watch line by line and hunt for errors
