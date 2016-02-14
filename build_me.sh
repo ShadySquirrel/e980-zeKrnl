@@ -19,7 +19,7 @@
 echo -e "#############################################################################################################"
 echo -e "###### ShadySquirrel's building script"
 echo -e "######"
-echo -e "###### Version 2.5.2, 06/01/2016 - (Ultimate Madness)^5 (tm) edition."
+echo -e "###### Version 2.5.3, 14/02/2016 - (Ultimate Madness)^5 (tm) edition."
 echo -e "######"
 echo -e "###### Written by ShadySquirrel @ github (https://github.com/ShadySquirrel/) AKA ShadySquirrel @ XDA"
 echo -e "###### Big thanks to my Uni, for my lack of sleep and increased desire to do anything else but study."
@@ -550,7 +550,8 @@ function print_error_msg {
 	echo -e "\t -h || --help -> displays this message"
 	echo -e "\t -j=# || --jobs=# -> number of jobs/threads"
 	echo -e "\t -d=name || --def=name -> defconfig name"
-	echo -e "\t --init=name || override initrd"
+	echo -e "\t --init=name -> override initrd"
+	echo -e "\t -cc -> Use CCACHE"
 	echo -e "# is a numeric value; 1 for yes, 2 for no"
 	echo -e "If some of variables aren't defined, script will let it's"
 	echo -e "own free will decide..."
@@ -607,7 +608,12 @@ fi
 ### We're alive, let's create needed variables
 echo -e " "
 echo -e "-> Setting variables:"
-export CROSS_COMPILE=$toolchain_path
+
+if [ $CCACHE_USED -eq 1 ]; then
+	export CROSS_COMPILE="ccache $toolchain_path"
+else
+	export CROSS_COMPILE="$toolchain_path"
+fi
 echo -e "+ CROSS_COMPILE=$CROSS_COMPILE"
 export KBUILD_OUTPUT=$KBUILD_OUTPUT
 echo -e "+ KBUILD_OUTPUT=$KBUILD_OUTPUT"
@@ -675,6 +681,11 @@ if [[ $# -gt 0 ]]; then
 					template_bootimg=$initf
 					echo -e "+ Using $initf as initrd template"
 				fi
+				shift
+				;;
+			-cc)
+				CCACHE_USED=1
+				echo -e "+ Use CCACHE located at $CCACHE_DIR"
 				shift
 				;;
 			* )
