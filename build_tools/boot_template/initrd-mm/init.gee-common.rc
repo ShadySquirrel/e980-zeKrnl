@@ -30,8 +30,9 @@ on init
     mkdir /firmware 0771 system system
 
     export EXTERNAL_STORAGE /storage/emulated/legacy
-    export EMULATED_STORAGE_SOURCE /mnt/shell/emulated
-    export EMULATED_STORAGE_TARGET /storage/emulated
+# OBSOLETE NOW (6.0)
+#    export EMULATED_STORAGE_SOURCE /mnt/shell/emulated
+#    export EMULATED_STORAGE_TARGET /storage/emulated
 
     # Support legacy paths
     symlink /storage/emulated/legacy /sdcard
@@ -381,8 +382,8 @@ service charger /sbin/healthd -c
     seclabel u:r:healthd:s0
 
 # virtual sdcard daemon running as media_rw (1023)
-service sdcard /system/bin/sdcard -u 1023 -g 1023 -l /data/media /mnt/shell/emulated
-    class late_start
+#service sdcard /system/bin/sdcard -u 1023 -g 1023 -l /data/media /mnt/shell/emulated
+#    class late_start
 
 service thermald /system/bin/thermald
     class main

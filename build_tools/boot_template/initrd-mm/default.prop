@@ -17,6 +17,6 @@ persist.sys.usb.config=mtp
 #
 # BOOTIMAGE_BUILD_PROPERTIES
 #
-ro.bootimage.build.date=Thu Dec 3 00:39:46 CET 2015
-ro.bootimage.build.date.utc=1449099587
-ro.bootimage.build.fingerprint=lge/slim_e980/e980:6.0/MRA58V/aaa14c4b2b:userdebug/test-keys
+ro.bootimage.build.date=Sun Feb 7 17:16:18 CET 2016
+ro.bootimage.build.date.utc=1454861778
+ro.bootimage.build.fingerprint=lge/slim_e980/e980:6.0/MRA59B/7ae4f7677b:userdebug/test-keys

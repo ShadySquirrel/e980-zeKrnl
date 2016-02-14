@@ -113,9 +113,10 @@ qemu.hw.mainkeys           u:object_r:qemu_hw_mainkeys_prop:s0
 dbg.coresight.cfg_file     u:object_r:coresight_prop:s0
 ctl.hbtp                   u:object_r:ctl_hbtp_prop:s0
 #line 1 "device/lge/e980/sepolicy/property_contexts"
+# Already defined in 6.0
 #persist.camera.              u:object_r:camera_prop:s0
 #line 1 "vendor/slim/sepolicy/property_contexts"
-service.adb.tcp.port          u:object_r:adbtcp_prop:s0
+adb.network.port              u:object_r:adbtcp_prop:s0
 recovery.perf.mode            u:object_r:recovery_prop:s0
 adb.secure                    u:object_r:recovery_prop:s0
 cm.userinit.active            u:object_r:userinit_prop:s0

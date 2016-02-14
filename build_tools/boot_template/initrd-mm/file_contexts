@@ -743,6 +743,7 @@
 #
 /data/qcks(/.*)?                                u:object_r:efs_data_file:s0
 #line 1 "device/lge/e980/sepolicy/file_contexts"
+# invalid context in 6.0
 #/system/bin/bridgemgrd             u:object_r:bridge_exec:s0
 
 /dev/ks_bridge                     u:object_r:ksbridgehsic_device:s0
