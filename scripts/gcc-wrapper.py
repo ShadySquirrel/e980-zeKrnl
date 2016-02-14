@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+# Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -10,7 +10,7 @@
 #     * Redistributions in binary form must reproduce the above copyright
 #       notice, this list of conditions and the following disclaimer in the
 #       documentation and/or other materials provided with the distribution.
-#     * Neither the name of Code Aurora nor
+#     * Neither the name of The Linux Foundation nor
 #       the names of its contributors may be used to endorse or promote
 #       products derived from this software without specific prior written
 #       permission.
@@ -40,9 +40,36 @@ import subprocess
 # force LANG to be set to en_US.UTF-8 to get consistent warnings.
 
 allowed_warnings = set([
-    "alignment.c:327",
-    "mmu.c:602",
-    "return_address.c:62",
+   "alignment.c:327",
+   "mmu.c:602",
+   "return_address.c:62",
+   "swab.h:49",
+   "SemaLambda.cpp:946",
+   "CGObjCGNU.cpp:1414",
+   "BugReporter.h:146",
+   "RegionStore.cpp:1904",
+   "SymbolManager.cpp:484",
+   "RewriteObjCFoundationAPI.cpp:737",
+   "RewriteObjCFoundationAPI.cpp:696",
+   "CommentParser.cpp:394",
+   "CommentParser.cpp:391",
+   "CommentParser.cpp:356",
+   "LegalizeDAG.cpp:3646",
+   "IRBuilder.h:844",
+   "DataLayout.cpp:193",
+   "transport.c:653",
+   "xt_socket.c:307",
+   "xt_socket.c:161",
+   "inet_hashtables.h:356",
+   "xc4000.c:1049",
+   "xc4000.c:1063",	
+   "f_qdss.c:586",
+   "mipi_tc358764_dsi2lvds.c:746",
+   "dynamic_debug.h:75",
+   "hci_conn.c:407",
+   "f_qdss.c:740",
+   "mipi_novatek.c:569",
+   "swab.h:34",
  ])
 
 # Capture the name of the object file, can find it.
